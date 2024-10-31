@@ -22,7 +22,13 @@ graph TD;
         Redis3[Redis Metadata]
     end
 
-    K8s[K8s Ingress] -.-> VM3;
+    CLIENT
+
+    K8s[K8s Ingress] <--> CLIENT;
+
+    K8s <-.-> N1*;
+    K8s <-.-> N2*;
+    K8s <-.-> N3*;
 
     VM1 --> Kafka;
     Kafka --> VM1;
