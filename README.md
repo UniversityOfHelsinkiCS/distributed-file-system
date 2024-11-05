@@ -3,23 +3,20 @@
 ```mermaid
 graph TD;
     subgraph VM1
-        N1*
-        Disk1[Disk]
-        Redis1[(Redis Metadata)]
+        N1* --> Disk1[Disk]
+        N1* --> Redis1[(Redis Metadata)]
     end
 
     Kafka[**Kafka Cluster];
 
     subgraph VM2
-        N2*
-        Disk2[Disk]
-        Redis2[(Redis Metadata)]
+        N2* --> Disk2[Disk]
+        N2* --> Redis2[(Redis Metadata)]
     end
 
     subgraph VM3
-        N3*
-        Disk3[Disk]
-        Redis3[(Redis Metadata)]
+        N3* --> Disk3[Disk]
+        N3* --> Redis3[(Redis Metadata)]
     end
 
     CLIENT
