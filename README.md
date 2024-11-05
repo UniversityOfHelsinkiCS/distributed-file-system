@@ -5,7 +5,7 @@ graph TD;
     subgraph VM1
         N1*
         Disk1[Disk]
-        Redis1[Redis Metadata]
+        Redis1[(Redis Metadata)]
     end
 
     Kafka[**Kafka Cluster];
@@ -13,13 +13,13 @@ graph TD;
     subgraph VM2
         N2*
         Disk2[Disk]
-        Redis2[Redis Metadata]
+        Redis2[(Redis Metadata)]
     end
 
     subgraph VM3
         N3*
         Disk3[Disk]
-        Redis3[Redis Metadata]
+        Redis3[(Redis Metadata)]
     end
 
     CLIENT
