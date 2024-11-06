@@ -53,19 +53,17 @@ One server node is always selected as the leader which will handle the writes an
 
 ```mermaid
 graph TD;
-    subgraph VM1
+    subgraph VM1[VM 1 Leader]
         N1* --> Disk1[Disk]
         N1* --> Redis1[(Redis Metadata)]
     end
 
-    Kafka[**Kafka Cluster];
-
-    subgraph VM2
+    subgraph VM2[VM 2 Follower]
         N2* --> Disk2[Disk]
         N2* --> Redis2[(Redis Metadata)]
     end
 
-    subgraph VM3
+    subgraph VM3[VM 3 Follower]
         N3* --> Disk3[Disk]
         N3* --> Redis3[(Redis Metadata)]
     end
@@ -78,12 +76,8 @@ graph TD;
     K8s <-.-> N2*;
     K8s <-.-> N3*;
 
-    VM1 --> Kafka;
-    Kafka --> VM1;
-    VM2 --> Kafka;
-    Kafka --> VM2;
-    VM3 --> Kafka;
-    Kafka --> VM3;
+    VM1 --> VM2;
+    VM1 --> VM3;
 ```
 
 ## Team members
