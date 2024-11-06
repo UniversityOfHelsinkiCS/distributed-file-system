@@ -92,3 +92,10 @@ graph TD;
 - Henri Remonen
 - Tuomas Huhtala
 - Eero Vahteri
+
+
+## Problems
+
+- [ ] How to select the leader among the server nodes, look in to RAFT
+- [ ] How does the Ingress controller know which server node is the current leader? Because we want to route the POST requests to this leader node and GET requests to any node.
+- [ ] How do we handle the offline server nodes? We probably want some kind of heartbeat algorithm. Can the Ingress controller somehow use deployment livenessprobes to check service status?
