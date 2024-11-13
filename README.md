@@ -14,7 +14,7 @@ The goal of this project is to create a distributed filesystem using a multinode
 ## Messaging protocols
 
 - The client connects to the Kubernetes Ingress via HTTP protocol and the load balancer communicates to the server nodes via HTTP protocol.
-- The server nodes communicate via message HTTP protocol with each other
+- The server nodes communicate via HTTP protocol with each other
 
 ## Functionalities
 
