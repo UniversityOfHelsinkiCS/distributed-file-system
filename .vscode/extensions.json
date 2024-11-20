@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "bierner.markdown-mermaid",
+    "ms-python.black-formatter",
+    "ms-python.pylint",
+    "ms-python.python"
+  ]
+}
