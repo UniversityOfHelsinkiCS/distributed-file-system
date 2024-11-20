@@ -5,10 +5,10 @@ metadata:
   name: distributed-filesystem-service
 spec:
   selector:
-    app: distributed-filesystem-service
+    app: distributed-filesystem
   type: ClusterIP
   ports:
-  - name: distributed-filesystem-service
+  - name: 8080-tcp 
     protocol: TCP
     port: 8080
     targetPort: 8080
