@@ -1,11 +1,11 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /opt/app-root/src
 
-COPY ./requirements.txt /app/requirements.txt
+COPY ./requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r ./requirements.txt
 
-COPY ./src /app/src
+COPY ./app ./app
 
-CMD ["fastapi", "dev", "src/main.py", "--host", "0.0.0.0"]
+CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0"]

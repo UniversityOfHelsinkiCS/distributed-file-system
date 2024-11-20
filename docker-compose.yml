@@ -6,4 +6,5 @@ services:
     ports:
       - "8000-8002:8000"
     volumes:
-      - ./storage:/app/storage
+      - ./storage:/opt/app-root/src/storage
+      - ./app:/opt/app-root/src/app
