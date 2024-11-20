@@ -1,6 +1,7 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
 import os
+
+from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse
 
 app = FastAPI()
 
@@ -30,8 +31,6 @@ async def get(file_name: str):
         raise HTTPException(status_code=404, detail='File not found')
     except Exception:
         raise HTTPException(status_code=500, detail='Something went wrong')
-
-    
 
 @app.get("/")
 async def main():
