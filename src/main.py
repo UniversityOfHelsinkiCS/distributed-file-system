@@ -37,7 +37,7 @@ async def get(file_name: str):
 async def main():
     content = """
 <body>
-<form action="/upload/" enctype="multipart/form-data" method="post">
+<form action="/upload" enctype="multipart/form-data" method="post">
 <input name="file" type="file">
 <input type="submit">
 </form>
