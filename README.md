@@ -1,6 +1,8 @@
 # Distributed File System
 
-## How to install
+## Instructions
+
+### How to install
 
 ```bash
 # Create virtual environment
@@ -13,11 +15,21 @@ $ source .venv/bin/activate
 $ pip install -r requirements.txt
 ```
 
-## How to run
+### How to run
 
 ```bash
 # Run in development mode
 $ fastapi dev src/main.py
+```
+
+### Code quality
+
+```bash
+# Lint
+$ pylint src
+
+# Format
+$ black src
 ```
 
 ## Overview
