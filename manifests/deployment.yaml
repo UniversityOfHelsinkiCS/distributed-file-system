@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distributed-filesystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: distributed-filesystem
+  template:
+    metadata:
+      labels:
+        app: distributed-filesystem
+    spec:
+      containers:
+        - name: distributed-filesystem
+          image: tfhuhtal/dist-file-sys:1005
+          resources:
+            limits:
+              cpu: "150m"
+              memory: "100Mi"
+          volumeMounts:
+            - name: file-volume
+              mountPath: /opt/app-root/storage
+      volumes:
+        - name: file-volume 
+          persistentVolumeClaim:
+            claimName: file-bucket
+---
+
