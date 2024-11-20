@@ -1,0 +1,16 @@
+# https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: distributed-filesystem-service
+spec:
+  selector:
+    app: distributed-filesystem-service
+  type: ClusterIP
+  ports:
+  - name: distributed-filesystem-service
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+---
+

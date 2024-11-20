@@ -1,0 +1,20 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: distributed-filesystem-route
+  labels:
+    app: distributed-filesystem
+    type: external
+  annotations:
+    haproxy.router.openshift.io/timeout: 900s
+spec:
+  host: distributed-filesystem.ext.ocp-prod-0.k8s.it.helsinki.fi
+  to:
+    kind: Service
+    name: distributed-filesystem-service
+  port:
+    targetPort: 8080-tcp
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: distributed-filesystem
-          image: tfhuhtal/dist-file-sys:1005
+          image: tfhuhtal/dist-file-sys:1007
           resources:
             limits:
               cpu: "150m"

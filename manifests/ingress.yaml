@@ -1,0 +1,18 @@
+# https://kubernetes.io/docs/concepts/services-networking/ingress/
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: distributed-filesystem-ingress 
+spec:
+  ingressClassName: openshift-default
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: distributed-filesystem-service 
+            port:
+              number: 8080
+
