@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      dockerfile: dev.Dockerfile
+    tty: true
+    ports:
+      - "8000-8002:8000"
+    volumes:
+      - ./storage:/app/storage

@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 app = FastAPI()
 
-FILE_DIRECTORY = "../storage"
+FILE_DIRECTORY = "storage"
 
 if not os.path.exists(FILE_DIRECTORY):
     os.makedirs(FILE_DIRECTORY)

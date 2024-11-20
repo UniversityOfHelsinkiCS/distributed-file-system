@@ -17,6 +17,17 @@ $ pip install -r requirements.txt
 
 ### How to run
 
+#### With Docker
+
+```bash
+# Create storage directory if it doesn't exist
+$ mkdir storage
+# Starts the application with three replicas in ports 8000, 8001, and 8002
+$ docker compose up --scale app=3
+```
+
+#### Without Docker
+
 ```bash
 # Run in development mode
 $ fastapi dev src/main.py
