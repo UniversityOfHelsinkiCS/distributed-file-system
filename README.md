@@ -1,5 +1,25 @@
 # Distributed File System
 
+## How to install
+
+```bash
+# Create virtual environment
+$ python3 -m venv .venv
+
+# Activate virtual environment
+$ source .venv/bin/activate
+
+# Install dependencies
+$ pip install -r requirements.txt
+```
+
+## How to run
+
+```bash
+# Run in development mode
+$ fastapi dev src/main.py
+```
+
 ## Overview
 
 The goal of this project is to create a distributed file system using a multinode leader-follower architecture. The system will be deployed on a hosted OpenShift Kubernetes cluster. This project is developed as part of the course [Distributed Systems](https://studies.helsinki.fi/kurssit/opintojakso/otm-1b26b72f-19c4-424f-8524-e917b67a659d) offered by the University of Helsinki.
