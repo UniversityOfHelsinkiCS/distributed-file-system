@@ -1,10 +1,79 @@
+version: "3.8"
+
 services:
-  app:
+  app-1:
     build:
       dockerfile: dev.Dockerfile
     tty: true
     ports:
-      - "8000-8002:8000"
+      - "8000:8000"
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+    environment:
+      REDIS_HOST: redis-1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: supersecret
+    depends_on:
+      - redis-1
+
+  redis-1:
+    image: redis:latest
+    command: redis-server --requirepass supersecret
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-1:/data
+
+  app-2:
+    build:
+      dockerfile: dev.Dockerfile
+    tty: true
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./storage:/opt/app-root/src/storage
+      - ./app:/opt/app-root/src/app
+    environment:
+      REDIS_HOST: redis-2
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: supersecret
+    depends_on:
+      - redis-2
+
+  redis-2:
+    image: redis:latest
+    command: redis-server --requirepass supersecret
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data-2:/data
+
+  app-3:
+    build:
+      dockerfile: dev.Dockerfile
+    tty: true
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./storage:/opt/app-root/src/storage
+      - ./app:/opt/app-root/src/app
+    environment:
+      REDIS_HOST: redis-3
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: supersecret
+    depends_on:
+      - redis-3
+
+  redis-3:
+    image: redis:latest
+    command: redis-server --requirepass supersecret
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-data-3:/data
+
+volumes:
+  redis-data-1:
+  redis-data-2:
+  redis-data-3:
