@@ -27,11 +27,15 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/upload")
 async def upload(file: UploadFile):
     try:
+        filename_hash = hash(file.filename)
+        exists = await app.state.redis.exists(filename_hash)
+        if exists:
+            raise FileExistsError
+
         contents = file.file.read()
         with open(os.path.join(FILE_DIRECTORY, file.filename), "wb") as f:
             f.write(contents)
 
-        filename_hash = hash(file.filename)
         file_metadata = {
             "filename": file.filename,
             "content_type": file.content_type,
@@ -39,6 +43,10 @@ async def upload(file: UploadFile):
         }
         await app.state.redis.hmset(filename_hash, file_metadata)
 
+    except FileExistsError:
+        raise HTTPException(
+            status_code=409, detail="File already exists, rename the file and try again"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
     finally:
@@ -50,9 +58,6 @@ async def upload(file: UploadFile):
 @app.get("/get/{filename}")
 async def get(filename: str):
     try:
-        file_metadata = await app.state.redis.hgetall(hash(filename))
-        print(file_metadata)
-
         return FileResponse(os.path.join(FILE_DIRECTORY, filename), filename=filename)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
