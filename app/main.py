@@ -1,34 +1,23 @@
-from contextlib import asynccontextmanager
 import os
 
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
-from redis_client import setup_redis
+from redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
 
+app = FastAPI()
 
-@asynccontextmanager
-async def lifespan(application: FastAPI):
-    if not os.path.exists(FILE_DIRECTORY):
-        os.makedirs(FILE_DIRECTORY)
-
-    try:
-        application.state.redis = await setup_redis()
-        yield
-    finally:
-        await application.state.redis.close()
-
-
-app = FastAPI(lifespan=lifespan)
+if not os.path.exists(FILE_DIRECTORY):
+    os.makedirs(FILE_DIRECTORY)
 
 
 @app.post("/upload")
-async def upload(file: UploadFile):
+async def upload(file: UploadFile, store=Depends(get_redis_store)):
     try:
         filename_hash = hash(file.filename)
-        exists = await app.state.redis.exists(filename_hash)
+        exists = await store.exists(filename_hash)
         if exists:
             raise FileExistsError
 
@@ -41,7 +30,7 @@ async def upload(file: UploadFile):
             "content_type": file.content_type,
             "file_size": file.size,
         }
-        await app.state.redis.hmset(filename_hash, file_metadata)
+        await store.hmset(filename_hash, file_metadata)
 
     except FileExistsError:
         raise HTTPException(
@@ -66,12 +55,12 @@ async def get(filename: str):
 
 
 @app.get("/")
-async def main():
+async def main(store=Depends(get_redis_store)):
     try:
-        keys = await app.state.redis.keys("*")
+        keys = await store.keys("*")
         files = []
         for key in keys:
-            metadata = await app.state.redis.hgetall(key)
+            metadata = await store.hgetall(key)
             files.append(metadata.get("filename", "Unknown"))
 
         file_list = "<ul>" + "".join(f"<li>{file}</li>" for file in files) + "</ul>"
