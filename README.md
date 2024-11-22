@@ -37,10 +37,10 @@ $ fastapi dev app/main.py
 
 ```bash
 # Lint
-$ pylint src
+$ pylint app
 
 # Format
-$ black src
+$ black app
 ```
 
 ## Overview
