@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
-from redis_client import setup
+from redis_client import setup_redis
 
 FILE_DIRECTORY = "storage"
 
@@ -15,7 +15,7 @@ async def lifespan(application: FastAPI):
         os.makedirs(FILE_DIRECTORY)
 
     try:
-        application.state.redis = await setup()
+        application.state.redis = await setup_redis()
         yield
     finally:
         await application.state.redis.close()
