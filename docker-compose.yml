@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app:
     build:
@@ -8,3 +10,20 @@ services:
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: supersecret
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    command: redis-server --requirepass supersecret
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
