@@ -1,8 +1,9 @@
+import os
 import redis.asyncio as redis
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_PASSWORD = "password"
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "password")
 
 
 async def setup():
@@ -15,7 +16,7 @@ async def setup():
 
     try:
         await r.ping()
-        print("Redis is connected")
+        print(f"Redis is connected to {REDIS_HOST}:{REDIS_PORT}")
     except Exception as e:
         print(f"Redis is not connected: {e}")
     return r
