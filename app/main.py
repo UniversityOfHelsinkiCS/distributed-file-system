@@ -1,14 +1,27 @@
+from contextlib import asynccontextmanager
 import os
 
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
-app = FastAPI()
+from redis_client import setup
 
 FILE_DIRECTORY = "storage"
 
-if not os.path.exists(FILE_DIRECTORY):
-    os.makedirs(FILE_DIRECTORY)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not os.path.exists(FILE_DIRECTORY):
+        os.makedirs(FILE_DIRECTORY)
+
+    try:
+        app.state.redis = await setup()
+        yield
+    finally:
+        await app.state.redis.close()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/upload")
