@@ -39,7 +39,7 @@ async def upload(file: UploadFile):
         file_metadata = {
             "filename": file.filename,
             "content_type": file.content_type,
-            "file_size": len(contents),
+            "file_size": file.size,
         }
         await app.state.redis.hmset(filename_hash, file_metadata)
 
