@@ -34,7 +34,6 @@ async def upload(file: UploadFile):
         filename_hash = hash(file.filename)
         file_metadata = {
             "filename": file.filename,
-            "hash": filename_hash,
             "content_type": file.content_type,
             "file_size": len(contents),
         }
@@ -48,13 +47,13 @@ async def upload(file: UploadFile):
     return {"message": f"Successfully uploaded {file.filename}"}
 
 
-@app.get("/get/{file_name}")
-async def get(file_name: str):
+@app.get("/get/{filename}")
+async def get(filename: str):
     try:
-        file_metadata = await app.state.redis.hgetall(hash(file_name))
+        file_metadata = await app.state.redis.hgetall(hash(filename))
         print(file_metadata)
 
-        return FileResponse(os.path.join(FILE_DIRECTORY, file_name), filename=file_name)
+        return FileResponse(os.path.join(FILE_DIRECTORY, filename), filename=filename)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
     except Exception:
@@ -63,12 +62,27 @@ async def get(file_name: str):
 
 @app.get("/")
 async def main():
-    content = """
-    <body>
-        <form action="/upload" enctype="multipart/form-data" method="post">
-            <input name="file" type="file">
-            <input type="submit">
-        </form>
-    </body>
-    """
-    return HTMLResponse(content=content)
+    try:
+        keys = await app.state.redis.keys("*")
+        files = []
+        for key in keys:
+            metadata = await app.state.redis.hgetall(key)
+            files.append(metadata.get("filename", "Unknown"))
+
+        file_list = "<ul>" + "".join(f"<li>{file}</li>" for file in files) + "</ul>"
+        content = f"""
+        <body>
+            <h2>Upload a new file:</h2>
+            <form action="/upload" enctype="multipart/form-data" method="post">
+                <input name="file" type="file">
+                <input type="submit">
+            </form>
+            
+            <h2>Uploaded Files:</h2>
+            {file_list}
+        </body>
+        """
+        return HTMLResponse(content=content)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
