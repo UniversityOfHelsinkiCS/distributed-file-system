@@ -4,10 +4,6 @@ metadata:
   name: distributed-filesystem-imagestream
   labels:
     app: distributed-filesystem
-    app.kubernetes.io/component: distributed-filesystem
-    app.kubernetes.io/instance: distributed-filesystem
-    app.kubernetes.io/name: distributed-filesystem
-    app.kubernetes.io/part-of: distributed-filesystem
 spec:
   lookupPolicy:
     local: false

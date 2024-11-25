@@ -1,0 +1,71 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  annotations:
+    alpha.image.policy.openshift.io/resolve-names: "*"
+  name: redis-distributed-filesystem
+  labels:
+      app: distributed-filesystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-distributed-filesystem
+  template:
+    metadata:
+      labels:
+        app: redis-distributed-filesystem
+        deployment: redis-distributed-filesystem
+    spec:
+      volumes:
+        - name: distributed-filesystem-redis-data
+          persistentVolumeClaim:
+            claimName: distributed-filesystem-redis-claim
+      containers:
+        - name: redis-distributed-filesystem
+          image: registry.redhat.io/rhel9/redis-7
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          volumeMounts:
+            - name: distributed-filesystem-redis-data
+              mountPath: /var/lib/redis/data
+      restartPolicy: Always
+---
+kind: Service
+apiVersion: v1
+
+metadata:
+  name: redis-distributed-filesystem-svc
+  labels:
+      app: distributed-filesystem
+spec:
+  ports:
+    - name: 6379-tcp
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: redis-distributed-filesystem
+    deployment: redis-distributed-filesystem
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+
+metadata:
+  name: distributed-filesystem-redis-claim
+  labels:
+      app: distributed-filesystem
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: pomppa25-new
+  volumeMode: Filesystem
+

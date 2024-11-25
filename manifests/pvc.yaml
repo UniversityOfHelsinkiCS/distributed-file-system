@@ -4,7 +4,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: file-bucket
   labels:
-    app: file-bucket
+    app: distributed-filesystem
 spec:
   storageClassName: pomppa25-new
   accessModes:
