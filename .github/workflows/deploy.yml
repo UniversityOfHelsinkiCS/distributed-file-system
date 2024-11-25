@@ -22,10 +22,3 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USER }}/distributed-filesystem:latest
-      
-      - name: Log in to Openshift
-        env:
-          OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
-          OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_SERVICE_ACCOUNT_TOKEN }}
-        run: |
-          oc login $OPENSHIFT_SERVER --token=$OPENSHIFT_TOKEN

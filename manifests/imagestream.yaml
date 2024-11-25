@@ -1,0 +1,7 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: distributed-filesystem-imagestream
+spec:
+  lookupPolicy:
+    local: false

@@ -4,6 +4,11 @@ metadata:
   name: distributed-filesystem
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: distributed-filesystem
@@ -14,7 +19,8 @@ spec:
     spec:
       containers:
         - name: distributed-filesystem
-          image: tfhuhtal/dist-file-sys:1007
+          image: ${{ secrets.OPENSHIFT_SERVER }}/ohtuprojekti-staging/distributed-filesystem-imagestream:latest
+          imagePullPolicy: Always
           resources:
             limits:
               cpu: "150m"
@@ -26,5 +32,12 @@ spec:
         - name: file-volume 
           persistentVolumeClaim:
             claimName: file-bucket
+      triggers:
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            from:
+              kind: ImageStream
+              name: distributed-filesystem-imagestream
 ---
 
