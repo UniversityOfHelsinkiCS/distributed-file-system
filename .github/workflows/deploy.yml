@@ -1,4 +1,4 @@
-name: Deploy
+name: Build, Publish and Deploy
 
 on:
   push:
@@ -9,14 +9,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Login to Dockerhub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USER }}/distributed-filesystem:latest
+      
+      - name: Log in to Openshift
+        env:
+          OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+          OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          oc login $OPENSHIFT_SERVER --token=$OPENSHIFT_TOKEN
