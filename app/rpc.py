@@ -22,7 +22,6 @@ async def rpc_handler(request: RPCRequest):
         raise HTTPException(status_code=400, detail="Method not found")
 
     try:
-        # Call the method with the provided parameters
         result = await method(**request.params)
         return {"result": result}
     except TypeError as e:
