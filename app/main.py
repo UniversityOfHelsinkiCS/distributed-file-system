@@ -3,11 +3,21 @@ import os
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
-from redis_client import get_redis_store
+from .raft_node import RaftNode
+from .redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
 
+is_leader = os.environ.get("LEADER") == "true"
+print(is_leader)
+
 app = FastAPI()
+raft_node = RaftNode(
+    1,
+    ["app-2-1:8000", "app-3-1:8000"],
+    is_leader,
+)
+
 
 if not os.path.exists(FILE_DIRECTORY):
     os.makedirs(FILE_DIRECTORY)
@@ -80,3 +90,12 @@ async def main(store=Depends(get_redis_store)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
+
+
+@app.get("/ping")
+async def ping():
+    print("RECEIVED PING")
+    return {"message": "pong"}
+
+
+raft_node.run()

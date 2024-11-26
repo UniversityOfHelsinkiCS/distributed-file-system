@@ -14,6 +14,7 @@ services:
       REDIS_HOST: redis-1
       REDIS_PORT: 6379
       REDIS_PASSWORD: supersecret
+      LEADER: true
     depends_on:
       - redis-1
 
