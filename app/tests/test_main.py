@@ -2,8 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 from io import BytesIO
-from main import app, FILE_DIRECTORY
-from redis_client import get_redis_store
+from ..main import app
+from ..redis_client import get_redis_store
 
 
 @pytest.fixture
