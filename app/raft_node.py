@@ -56,6 +56,8 @@ class RaftNode:
     def run(self):
         print(self.state)
 
+        # The leader node send either information about the new log entries or a heartbeat 
+        # to all followers if no new log entries are available.
         if self.state == RaftState.LEADER:
             for peer in self.peers:
                 self.send_append_entries(peer)

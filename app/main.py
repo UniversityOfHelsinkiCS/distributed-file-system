@@ -14,7 +14,7 @@ print(f"Is leader: {is_leader}")
 
 raft_node = RaftNode(
     1,
-    ["app-2:8000", "app-3:8000"],  # Corrected hostnames
+    ["app-2:8000", "app-3:8000"],
     is_leader,
 )
 
@@ -31,6 +31,5 @@ def heartbeat():
         time.sleep(5)
 
 
-# Start the background task in a separate thread
 t = Thread(target=heartbeat, daemon=True)
 t.start()
