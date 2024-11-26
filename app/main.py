@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from .raft_node import RaftNode
 from .routes import router as routes_router
+from .rpc import rpc_router
 
 FILE_DIRECTORY = "storage"
 
@@ -24,6 +25,7 @@ if not os.path.exists(FILE_DIRECTORY):
 
 app = FastAPI()
 app.include_router(routes_router)
+app.include_router(rpc_router)
 
 def heartbeat():
     while True:
