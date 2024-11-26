@@ -7,7 +7,6 @@ FILE_DIRECTORY = "storage"
 
 router = APIRouter()
 
-
 @router.post("/upload")
 async def upload(file: UploadFile, store=Depends(get_redis_store)):
     try:
