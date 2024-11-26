@@ -24,6 +24,7 @@ if not os.path.exists(FILE_DIRECTORY):
     os.makedirs(FILE_DIRECTORY)
 
 app = FastAPI()
+app.raft_node = raft_node
 
 app.include_router(routes_router)
 app.include_router(rpc_router)
