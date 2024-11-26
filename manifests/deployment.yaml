@@ -30,6 +30,11 @@ spec:
           volumeMounts:
             - name: file-volume
               mountPath: /opt/app-root/storage
+          env:
+            - name: REDIS_HOST
+              value: redis-distributed-filesystem-svc
+            - name: REDIS_PASSWORD
+              value: supersecret
       volumes:
         - name: file-volume 
           persistentVolumeClaim:
