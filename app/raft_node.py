@@ -7,6 +7,15 @@ import requests
 from requests.exceptions import RequestException
 
 
+class LogEntry:
+    def __init__(self, term, command):
+        self.term = term
+        self.command = command
+
+    def __repr__(self):
+        return f"LogEntry(term={self.term}, command={self.command})"
+
+
 class RaftState(Enum):
     LEADER = 0
     FOLLOWER = 1
@@ -53,18 +62,6 @@ class RaftNode:
         except RequestException as e:
             print(f"Error contacting {peer}: {e}")
 
-    def request_vote(self, message):
-        pass
-
-    def append_entries(self, message):
-        pass
-
-    def handle_message(self, message):
-        pass
-
-    def send_message(self, message):
-        pass
-
     def run(self):
         print(self.state)
 
@@ -90,38 +87,3 @@ class RaftNode:
         self.last_election = time.time()
         for peer in self.peers:
             self.send_request_vote(peer)
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def on_election_timeout(self):
-        pass
-
-    def on_heartbeat_timeout(self):
-        pass
-
-    def on_vote_received(self):
-        pass
-
-    def on_append_entries_received(self):
-        pass
-
-    def on_majority_received(self):
-        pass
-
-    def on_majority_committed(self):
-        pass
-
-    def on_majority_applied(self):
-        pass
-
-    def on_majority_heartbeat(self):
-        pass
-
-    def on_majority_election(self):
-        pass
-
-    # def on_majority_vote

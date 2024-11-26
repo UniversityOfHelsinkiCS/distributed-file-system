@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: distributed-filesystem
-          image: ${{ secrets.OPENSHIFT_SERVER }}/ohtuprojekti-staging/distributed-filesystem-imagestream:latest
+          image: toskakayttaja/distributed-filesystem:latest
           imagePullPolicy: Always
           resources:
             limits:
@@ -30,16 +30,14 @@ spec:
           volumeMounts:
             - name: file-volume
               mountPath: /opt/app-root/storage
+          env:
+            - name: REDIS_HOST
+              value: redis-distributed-filesystem-svc
+            - name: REDIS_PASSWORD
+              value: supersecret
       volumes:
         - name: file-volume 
           persistentVolumeClaim:
             claimName: file-bucket
-      triggers:
-        - type: ImageChange
-          imageChangeParams:
-            automatic: true
-            from:
-              kind: ImageStream
-              name: distributed-filesystem-imagestream
 ---
 

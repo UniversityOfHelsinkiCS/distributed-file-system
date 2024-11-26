@@ -30,6 +30,7 @@ spec:
           volumeMounts:
             - name: distributed-filesystem-redis-data
               mountPath: /var/lib/redis/data
+          command: ["redis-server", "--requirepass", "supersecret"]
       restartPolicy: Always
 ---
 kind: Service
@@ -45,10 +46,6 @@ spec:
       protocol: TCP
       port: 6379
       targetPort: 6379
-    - name: 8080-tcp
-      protocol: TCP
-      port: 8080
-      targetPort: 8080
   selector:
     app: redis-distributed-filesystem
     deployment: redis-distributed-filesystem
