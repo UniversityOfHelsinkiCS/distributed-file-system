@@ -1,5 +1,7 @@
 import os
+from threading import Thread
 
+import time
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 
@@ -11,16 +13,16 @@ FILE_DIRECTORY = "storage"
 is_leader = os.environ.get("LEADER") == "true"
 print(is_leader)
 
-app = FastAPI()
 raft_node = RaftNode(
     1,
-    ["app-2-1:8000", "app-3-1:8000"],
+    ["app-2:8000", "app-3:8000"],  # Corrected hostnames
     is_leader,
 )
 
-
 if not os.path.exists(FILE_DIRECTORY):
     os.makedirs(FILE_DIRECTORY)
+
+app = FastAPI()
 
 
 @app.post("/upload")
@@ -98,4 +100,11 @@ async def ping():
     return {"message": "pong"}
 
 
-raft_node.run()
+def background_task():
+    while True:
+        raft_node.run()
+        time.sleep(5)
+
+
+t = Thread(target=background_task)
+t.start()

@@ -1,7 +1,10 @@
 from enum import Enum
+
+import time
 import random
 import requests
-import time
+
+from requests.exceptions import RequestException
 
 
 class RaftState(Enum):
@@ -32,8 +35,11 @@ class RaftNode:
         pass
 
     def send_append_entries(self, peer):
-        response = requests.get(f"http://{peer}/ping")
-        print(response.json(), response.status_code)
+        try:
+            response = requests.get(f"http://{peer}/ping")
+            print(f"Response from {peer}: {response.json()} ({response.status_code})")
+        except RequestException as e:
+            print(f"Error contacting {peer}: {e}")
 
     def request_vote(self, message):
         pass
@@ -49,12 +55,10 @@ class RaftNode:
 
     def run(self):
         print(self.state)
-        while True:
-            current_time = time.time()
-            if self.state == RaftState.LEADER:
-                for peer in self.peers:
-                    self.send_append_entries(peer)
-            time.sleep(1)
+
+        if self.state == RaftState.LEADER:
+            for peer in self.peers:
+                self.send_append_entries(peer)
 
         # if current_time - self.last_heartbeat >= self.heartbeat_timeout:
         #     self.last_heartbeat = current_time
