@@ -1,6 +1,8 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import BaseModel
+from typing import Dict, Any
 from .redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
@@ -81,3 +83,31 @@ async def main(store=Depends(get_redis_store)):
 async def ping():
     print("RECEIVED PING")
     return {"message": "pong"}
+
+
+async def heartbeat():
+    print("received heartbeat")
+
+
+class RPCRequest(BaseModel):
+    method: str
+    params: Dict[str, Any]
+
+
+rpc_methods = {
+    "heartbeat": heartbeat,
+}
+
+
+@router.post("/rpc")
+async def rpc_handler(request: RPCRequest):
+    method = rpc_methods.get(request.method)
+    if not method:
+        raise HTTPException(status_code=400, detail="Method not found")
+
+    try:
+        # Call the method with the provided parameters
+        result = await method(**request.params)
+        return {"result": result}
+    except TypeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid parameters: {e}")

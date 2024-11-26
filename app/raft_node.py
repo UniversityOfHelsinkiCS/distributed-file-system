@@ -36,8 +36,20 @@ class RaftNode:
 
     def send_append_entries(self, peer):
         try:
-            response = requests.get(f"http://{peer}/ping")
-            print(f"Response from {peer}: {response.json()} ({response.status_code})")
+            rpc_payload = {
+                "method": "heartbeat",
+                "params": {}
+            }
+            response = requests.post(f"http://{peer}/rpc", json=rpc_payload)
+
+            if response.status_code == 200:
+                try:
+                    response_json = response.json()
+                    print(f"Response from {peer}: {response_json} ({response.status_code})")
+                except ValueError:
+                    print(f"Invalid JSON response from {peer}: {response.text} ({response.status_code})")
+            else:
+                print(f"Error from {peer}: {response.text} ({response.status_code})")
         except RequestException as e:
             print(f"Error contacting {peer}: {e}")
 
