@@ -10,13 +10,7 @@ FILE_DIRECTORY = "storage"
 
 # Set up RaftNode
 is_leader = os.environ.get("LEADER") == "true"
-print(f"Is leader: {is_leader}")
 
-raft_node = RaftNode(
-    1,
-    ["app-2:8000", "app-3:8000"],
-    is_leader,
-)
 
 # Ensure storage directory exists
 if not os.path.exists(FILE_DIRECTORY):
@@ -25,11 +19,19 @@ if not os.path.exists(FILE_DIRECTORY):
 app = FastAPI()
 app.include_router(routes_router)
 
-def heartbeat():
+
+def main_loop():
+    raft_node = RaftNode(
+        1,
+        ["app-2:8000", "app-3:8000"],
+        is_leader,
+    )
+
     while True:
         raft_node.run()
         time.sleep(5)
 
 
-t = Thread(target=heartbeat, daemon=True)
-t.start()
+if __name__ == "__main__":
+    t = Thread(target=main_loop, daemon=True)
+    t.start()

@@ -6,6 +6,14 @@ import requests
 
 from requests.exceptions import RequestException
 
+class LogEntry:
+    def __init__(self, term, command):
+        self.term = term
+        self.command = command
+
+    def __repr__(self):
+        return f"LogEntry(term={self.term}, command={self.command})"
+
 
 class RaftState(Enum):
     LEADER = 0
@@ -33,11 +41,19 @@ class RaftNode:
 
     def send_request_vote(self, peer):
         pass
-
+    
     def send_append_entries(self, peer):
+        """
+        Send log entries or heartbeat to a peer.
+        """
+        if self.state != RaftState.LEADER:
+            return
+
+        message = LogEntry(self.current_term, self.log)
+
         try:
-            response = requests.get(f"http://{peer}/ping")
-            print(f"Response from {peer}: {response.json()} ({response.status_code})")
+            response = requests.post(f"http://{peer}/append_entries", json=message)
+            print(f"AppendEntries sent to {peer}, response: {response.json()}")
         except RequestException as e:
             print(f"Error contacting {peer}: {e}")
 
