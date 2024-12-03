@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import os
 import asyncio
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from .redis_client import get_redis_store
 
 from .raft_node import RaftNode
@@ -40,6 +41,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 app.raft_node = raft_node
 
 app.include_router(routes_router)
