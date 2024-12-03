@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>Distributed File System</title>
+  </head>
+  <body>
+    <h1>Distributed File System</h1>
+    <h2>Upload a new file</h2>
+    <form action="/upload" enctype="multipart/form-data" method="post">
+      <input name="file" type="file" />
+      <input type="submit" />
+    </form>
+    <h2>Uploaded files</h2>
+    <ul>
+      {% for file in file_list %}
+      <li>{{ file }}</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
