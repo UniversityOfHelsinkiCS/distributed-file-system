@@ -40,6 +40,7 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
         for hash in params.log:
             if hash not in raft_node.log:
                 missing_files.append(hash)
+        print(f"filesave missmatch between nodes, copying {missing_files} files from leader")
         response["update_files"] = missing_files
 
         if term > raft_node.current_term:
@@ -102,6 +103,7 @@ async def transfer_files(raft_node: RaftNode, params: TransferFilesParams):
         with open(os.path.join(FILE_DIRECTORY, file_name), "wb") as f:
             f.write(file_data)
         await raft_node.redis.hmset(file["hash"], file_metadata)
+    print("filesave consistency updated successfully")
     return "success"
 
 
