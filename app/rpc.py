@@ -1,9 +1,12 @@
+import base64
+import os
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
-from requests import Response
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+
+from .routes import FILE_DIRECTORY
 from .raft_node import RaftNode, RaftState
 
 rpc_router = APIRouter()
@@ -12,7 +15,6 @@ rpc_router = APIRouter()
 class RPCRequest(BaseModel):
     method: str
     params: Dict[str, Any]
-    files: Optional[list] = None
 
 
 class HeartbeatParams(BaseModel):
@@ -25,18 +27,20 @@ class RequestVoteParams(BaseModel):
     candidate_id: str
 
 
+class TransferFilesParams(BaseModel):
+    files: list[Dict[str, Any]]
+
+
 async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
     async with raft_node.lock:
         term = params.term
         print(f"Received heartbeat for term {term}")
         response = {"term": raft_node.current_term}
-        if len(raft_node.log) != len(params.log):
-            missing_files = []
-            for hash in params.log:
-                if hash not in raft_node.log:
-                    missing_files.append(hash)
-            print('its diffferentt ===================-=-=-============-=-=-=-=')
-            response["update_files"] = missing_files
+        missing_files = []
+        for hash in params.log:
+            if hash not in raft_node.log:
+                missing_files.append(hash)
+        response["update_files"] = missing_files
 
         if term > raft_node.current_term:
             raft_node.current_term = term
@@ -85,23 +89,31 @@ async def request_vote(raft_node: RaftNode, params: RequestVoteParams):
 
     return {"term": raft_node.current_term, "vote_granted": vote_granted}
 
-async def transfer_files():
-    print("transfer")
+
+async def transfer_files(raft_node: RaftNode, params: TransferFilesParams):
+    for file in params.files:
+        file_data = base64.b64decode(file["content"][1:-1])
+        file_name = file["filename"]
+        file_metadata = {
+            "filename": file_name,
+            "content_type": file["content_type"],
+            "file_size": len(file_data),
+        }
+        with open(os.path.join(FILE_DIRECTORY, file_name), "wb") as f:
+            f.write(file_data)
+        await raft_node.redis.hmset(file["hash"], file_metadata)
+    return "success"
 
 
 rpc_methods = {
     "heartbeat": (heartbeat, HeartbeatParams),
     "request_vote": (request_vote, RequestVoteParams),
-    "transfer_files": (transfer_files)
+    "transfer_files": (transfer_files, TransferFilesParams),
 }
 
 
 @rpc_router.post("/rpc")
 async def rpc_handler(request: RPCRequest, fastapi_request: Request):
-    print(request)
-    print(fastapi_request)
-    print(fastapi_request.body)
-    print(fastapi_request.stream)
     method_tuple = rpc_methods.get(request.method)
     if not method_tuple:
         raise HTTPException(status_code=400, detail="Method not found")

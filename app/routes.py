@@ -7,6 +7,7 @@ FILE_DIRECTORY = "storage"
 
 router = APIRouter()
 
+
 @router.post("/upload")
 async def upload(file: UploadFile, store=Depends(get_redis_store)):
     try:
@@ -25,8 +26,6 @@ async def upload(file: UploadFile, store=Depends(get_redis_store)):
             "file_size": len(contents),
         }
         await store.hmset(filename_hash, file_metadata)
-
-        print(file_metadata, filename_hash, 'sume thing =============================================================================')
 
     except FileExistsError:
         raise HTTPException(
