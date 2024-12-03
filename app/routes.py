@@ -26,6 +26,8 @@ async def upload(file: UploadFile, store=Depends(get_redis_store)):
         }
         await store.hmset(filename_hash, file_metadata)
 
+        print(file_metadata, filename_hash, 'sume thing =============================================================================')
+
     except FileExistsError:
         raise HTTPException(
             status_code=409, detail="File already exists, rename the file and try again"

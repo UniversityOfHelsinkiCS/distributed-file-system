@@ -14,6 +14,7 @@ class RPCRequest(BaseModel):
 
 class HeartbeatParams(BaseModel):
     term: int
+    log: list[int]
 
 
 class RequestVoteParams(BaseModel):
@@ -25,6 +26,10 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
     async with raft_node.lock:
         term = params.term
         print(f"Received heartbeat for term {term}")
+        if len(raft_node.log) != len(params.log):
+            print('its diffferentt ===================-=-=-============-=-=-=-=')
+            return {"term": raft_node.current_term, "update_files": True}
+
         if term > raft_node.current_term:
             raft_node.current_term = term
             raft_node.state = RaftState.FOLLOWER

@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import os
 import asyncio
 from fastapi import FastAPI
+from .redis_client import get_redis_store
 
 from .raft_node import RaftNode
 from .routes import router as routes_router
@@ -17,6 +18,7 @@ if not node_id:
 raft_node = RaftNode(
     node_id,
     ["app-1:8000", "app-2:8000", "app-3:8000"],
+    get_redis_store(),
 )
 
 # Ensure storage directory exists

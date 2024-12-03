@@ -22,7 +22,7 @@ class RaftState(Enum):
 
 
 class RaftNode:
-    def __init__(self, node_id: str, peers: list[str]):
+    def __init__(self, node_id: str, peers: list[str], redis):
         self.node_id = node_id
         self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000"]
         self.state = RaftState.FOLLOWER
@@ -34,6 +34,7 @@ class RaftNode:
         self.heartbeat_interval = 0.5
         self.votes_received = 0
         self.lock = asyncio.Lock()
+        self.redis = redis
 
     async def send_request_vote(self, peer):
         async with self.lock:
@@ -79,12 +80,15 @@ class RaftNode:
                 "method": "heartbeat",
                 "params": {
                     "term": term,
+                    "log": self.log,
                 },
             }
             response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
+                resp_log_status = response_json.get("result", {}).get("update_files")
+                print(resp_log_status)
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
@@ -92,6 +96,8 @@ class RaftNode:
                         self.voted_for = None
                         self.last_heartbeat = time.time()
                     print(f"Stepping down to follower due to higher term from {peer}")
+                if resp_log_status == True:
+                    print('do some magic here =======================+___+_+_=-=_+_+-=-=')
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
         except RequestException as e:
@@ -103,6 +109,8 @@ class RaftNode:
             state = self.state
             term = self.current_term
         print(f"Node {self.node_id} in state {state} at term {term}")
+        await self.append_entries()
+        print(f"Node {self.node_id} log: {self.log}")
         if state == RaftState.LEADER:
             async with self.lock:
                 self.last_heartbeat = current_time
@@ -135,3 +143,7 @@ class RaftNode:
         async with self.lock:
             self.state = RaftState.LEADER
         print(f"Node {self.node_id} became leader in term {self.current_term}")
+
+    async def append_entries(self):
+        keys = await self.redis.keys("*")
+        self.log = keys
