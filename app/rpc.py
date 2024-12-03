@@ -1,5 +1,7 @@
 import time
 from typing import Dict, Any
+
+from requests import Response
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from .raft_node import RaftNode, RaftState
@@ -26,9 +28,10 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
     async with raft_node.lock:
         term = params.term
         print(f"Received heartbeat for term {term}")
+        response = {"term": raft_node.current_term}
         if len(raft_node.log) != len(params.log):
             print('its diffferentt ===================-=-=-============-=-=-=-=')
-            return {"term": raft_node.current_term, "update_files": True}
+            response["update_files"] = True
 
         if term > raft_node.current_term:
             raft_node.current_term = term
@@ -44,9 +47,9 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
                 )
         else:
             print(f"Received stale heartbeat from term {term}")
-            return {"term": raft_node.current_term}
+            return response
         raft_node.last_heartbeat = time.time()
-        return {"term": raft_node.current_term}
+        return response
 
 
 async def request_vote(raft_node: RaftNode, params: RequestVoteParams):
