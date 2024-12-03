@@ -1,6 +1,6 @@
+from contextlib import asynccontextmanager
 import os
-from threading import Thread
-import time
+import asyncio
 from fastapi import FastAPI
 
 from .raft_node import RaftNode
@@ -9,31 +9,36 @@ from .rpc import rpc_router
 
 FILE_DIRECTORY = "storage"
 
-# Set up RaftNode
-is_leader = os.environ.get("LEADER") == "true"
-print(f"Is leader: {is_leader}")
+node_id = os.environ.get("NODE_ID")
+
+if not node_id:
+    raise ValueError("NODE_ID environment variable is required")
 
 raft_node = RaftNode(
-    1,
-    ["app-2:8000", "app-3:8000"],
-    is_leader,
+    node_id,
+    ["app-1:8000", "app-2:8000", "app-3:8000"],
 )
 
 # Ensure storage directory exists
 if not os.path.exists(FILE_DIRECTORY):
     os.makedirs(FILE_DIRECTORY)
 
-app = FastAPI()
+
+async def heartbeat():
+    while True:
+        await raft_node.run()
+        await asyncio.sleep(raft_node.heartbeat_interval)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(heartbeat())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 app.raft_node = raft_node
 
 app.include_router(routes_router)
 app.include_router(rpc_router)
-
-def heartbeat():
-    while True:
-        raft_node.run()
-        time.sleep(5)
-
-
-t = Thread(target=heartbeat, daemon=True)
-t.start()

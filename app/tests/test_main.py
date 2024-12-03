@@ -1,7 +1,12 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
 from io import BytesIO
+
+# Set NODE_ID environment variable before importing the app
+os.environ["NODE_ID"] = "test-node-id"
+
 from ..main import app
 from ..redis_client import get_redis_store
 

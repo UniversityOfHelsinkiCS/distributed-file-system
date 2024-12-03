@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   app-1:
     build:
@@ -10,17 +8,19 @@ services:
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+    container_name: app-1
     environment:
       REDIS_HOST: redis-1
       REDIS_PORT: 6379
       REDIS_PASSWORD: supersecret
-      LEADER: true
+      NODE_ID: 1
     depends_on:
       - redis-1
 
   redis-1:
     image: redis:latest
     command: redis-server --requirepass supersecret
+    container_name: redis-1
     ports:
       - "6379:6379"
     volumes:
@@ -35,16 +35,19 @@ services:
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+    container_name: app-2
     environment:
       REDIS_HOST: redis-2
       REDIS_PORT: 6379
       REDIS_PASSWORD: supersecret
+      NODE_ID: 2
     depends_on:
       - redis-2
 
   redis-2:
     image: redis:latest
     command: redis-server --requirepass supersecret
+    container_name: redis-2
     ports:
       - "6380:6379"
     volumes:
@@ -59,16 +62,19 @@ services:
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+    container_name: app-3
     environment:
       REDIS_HOST: redis-3
       REDIS_PORT: 6379
       REDIS_PASSWORD: supersecret
+      NODE_ID: 3
     depends_on:
       - redis-3
 
   redis-3:
     image: redis:latest
     command: redis-server --requirepass supersecret
+    container_name: redis-3
     ports:
       - "6381:6379"
     volumes:
