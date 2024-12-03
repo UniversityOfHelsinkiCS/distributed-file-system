@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from requests import Response
 from fastapi import APIRouter, HTTPException, Request
@@ -12,6 +12,7 @@ rpc_router = APIRouter()
 class RPCRequest(BaseModel):
     method: str
     params: Dict[str, Any]
+    files: Optional[list] = None
 
 
 class HeartbeatParams(BaseModel):
@@ -30,8 +31,12 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
         print(f"Received heartbeat for term {term}")
         response = {"term": raft_node.current_term}
         if len(raft_node.log) != len(params.log):
+            missing_files = []
+            for hash in params.log:
+                if hash not in raft_node.log:
+                    missing_files.append(hash)
             print('its diffferentt ===================-=-=-============-=-=-=-=')
-            response["update_files"] = True
+            response["update_files"] = missing_files
 
         if term > raft_node.current_term:
             raft_node.current_term = term
@@ -80,15 +85,23 @@ async def request_vote(raft_node: RaftNode, params: RequestVoteParams):
 
     return {"term": raft_node.current_term, "vote_granted": vote_granted}
 
+async def transfer_files():
+    print("transfer")
+
 
 rpc_methods = {
     "heartbeat": (heartbeat, HeartbeatParams),
     "request_vote": (request_vote, RequestVoteParams),
+    "transfer_files": (transfer_files)
 }
 
 
 @rpc_router.post("/rpc")
 async def rpc_handler(request: RPCRequest, fastapi_request: Request):
+    print(request)
+    print(fastapi_request)
+    print(fastapi_request.body)
+    print(fastapi_request.stream)
     method_tuple = rpc_methods.get(request.method)
     if not method_tuple:
         raise HTTPException(status_code=400, detail="Method not found")

@@ -1,9 +1,11 @@
 import asyncio
+import os
 import time
 import random
 from enum import Enum
 import requests
 from requests.exceptions import RequestException
+from .routes import FILE_DIRECTORY
 
 
 class LogEntry:
@@ -87,8 +89,8 @@ class RaftNode:
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
-                resp_log_status = response_json.get("result", {}).get("update_files")
-                print(resp_log_status)
+                resp_update_files = response_json.get("result", {}).get("update_files", [])
+                print(resp_update_files)
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
@@ -96,7 +98,18 @@ class RaftNode:
                         self.voted_for = None
                         self.last_heartbeat = time.time()
                     print(f"Stepping down to follower due to higher term from {peer}")
-                if resp_log_status == True:
+                if len(resp_update_files) > 0:
+                    rpc_payload = {
+                        "method": "transfer_files",
+                        "params": {},
+                        "files": []
+                    }
+                    files = []
+                    for key in resp_update_files:
+                        metadata = await self.redis.hgetall(key)
+                        files.append(os.path.join(FILE_DIRECTORY, metadata.get("filename")))
+                    rpc_payload["files"] = files
+                    response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
                     print('do some magic here =======================+___+_+_=-=_+_+-=-=')
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
