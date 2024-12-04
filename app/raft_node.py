@@ -1,9 +1,12 @@
 import asyncio
+import base64
+import os
 import time
 import random
 from enum import Enum
 import requests
 from requests.exceptions import RequestException
+from .routes import FILE_DIRECTORY
 
 
 class LogEntry:
@@ -87,8 +90,9 @@ class RaftNode:
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
-                resp_log_status = response_json.get("result", {}).get("update_files")
-                print(resp_log_status)
+                resp_update_files = response_json.get("result", {}).get(
+                    "update_files", []
+                )
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
@@ -96,8 +100,29 @@ class RaftNode:
                         self.voted_for = None
                         self.last_heartbeat = time.time()
                     print(f"Stepping down to follower due to higher term from {peer}")
-                if resp_log_status == True:
-                    print('do some magic here =======================+___+_+_=-=_+_+-=-=')
+                if len(resp_update_files) > 0:
+                    rpc_payload = {
+                        "method": "transfer_files",
+                        "params": {"files": []},
+                    }
+                    files = []
+                    for key in resp_update_files:
+                        metadata = await self.redis.hgetall(key)
+                        file_name = metadata.get("filename")
+                        file_path = os.path.join(FILE_DIRECTORY, file_name)
+                        with open(file_path, "rb") as fh:
+                            content = fh.read()
+                        file = {
+                            "filename": file_name,
+                            "content_type": metadata.get("content_type"),
+                            "content": str(base64.b64encode(content)),
+                            "hash": key,
+                        }
+                        files.append(file)
+                    rpc_payload["params"]["files"] = files
+                    response = requests.post(
+                        f"http://{peer}/rpc", json=rpc_payload, timeout=5
+                    )
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
         except RequestException as e:
@@ -110,7 +135,6 @@ class RaftNode:
             term = self.current_term
         print(f"Node {self.node_id} in state {state} at term {term}")
         await self.append_entries()
-        print(f"Node {self.node_id} log: {self.log}")
         if state == RaftState.LEADER:
             async with self.lock:
                 self.last_heartbeat = current_time
