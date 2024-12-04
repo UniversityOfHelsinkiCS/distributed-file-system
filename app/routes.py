@@ -1,11 +1,14 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse
 from .redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
 
 router = APIRouter()
+
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.post("/upload")
@@ -50,7 +53,7 @@ async def get(filename: str):
 
 
 @router.get("/")
-async def main(store=Depends(get_redis_store)):
+async def main(request: Request, store=Depends(get_redis_store)):
     try:
         keys = await store.keys("*")
         files = []
@@ -58,21 +61,10 @@ async def main(store=Depends(get_redis_store)):
             metadata = await store.hgetall(key)
             files.append(metadata.get("filename", "Unknown"))
 
-        file_list = "<ul>" + "".join(f"<li>{file}</li>" for file in files) + "</ul>"
-        content = f"""
-        <body>
-            <h2>Upload a new file:</h2>
-            <form action="/upload" enctype="multipart/form-data" method="post">
-                <input name="file" type="file">
-                <input type="submit">
-            </form>
-            
-            <h2>Uploaded Files:</h2>
-            {file_list}
-        </body>
-        """
-        return HTMLResponse(content=content)
-
+        file_list = files if files else "No files uploaded yet"
+        return templates.TemplateResponse(
+            request=request, name="index.html", context={"file_list": file_list}
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
 

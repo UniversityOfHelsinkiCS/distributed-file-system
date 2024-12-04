@@ -1,0 +1,108 @@
+/* Based on code generated with ChatGPT */
+
+body,
+h1,
+h2,
+ul,
+li,
+form {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  color: #333;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f9f9f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.container {
+  background: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.content {
+  text-align: center;
+}
+
+h1 {
+  color: #2c3e50;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  color: #34495e;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.upload-form {
+  margin-bottom: 20px;
+}
+
+.upload-form form {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.upload-form input[type="file"] {
+  flex-grow: 1;
+  padding: 5px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #ecf0f1;
+  cursor: pointer;
+}
+
+.upload-form input[type="submit"] {
+  flex-shrink: 0;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-transform: uppercase;
+  width: 100px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.upload-form input[type="submit"]:hover {
+  background-color: #2980b9;
+}
+
+ul {
+  list-style-type: none;
+  margin-top: 10px;
+  padding-left: 0;
+}
+
+li {
+  padding: 8px 10px;
+  background-color: #ecf0f1;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+li:hover {
+  background-color: #bdc3c7;
+}

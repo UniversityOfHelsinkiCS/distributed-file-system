@@ -53,9 +53,9 @@ def test_main_page(client, mock_redis_store):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "<h2>Upload a new file:</h2>" in response.text
-    assert "<h2>Uploaded Files:</h2>" in response.text
-    assert "<li>test.txt</li>" in response.text
+    assert "Upload a new file" in response.text
+    assert "Uploaded files" in response.text
+    assert "test.txt" in response.text
 
 
 def test_upload_file(client, mock_redis_store):
