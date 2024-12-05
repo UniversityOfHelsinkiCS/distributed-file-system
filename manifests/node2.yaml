@@ -63,8 +63,12 @@ spec:
     spec:
       containers:
         - name: distributed-filesystem
-          image: toskakayttaja/distributed-filesystem:latest
+          image: tfhuhtal/distfilsyskub:1.4
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "500Mi"
           ports:
             - containerPort: 8080
           env:
@@ -93,6 +97,11 @@ spec:
                 configMapKeyRef:
                   name: distributed-filesystem-config
                   key: LEADER_NODE
+            - name: RAFT_NODES
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: RAFT_NODES
           volumeMounts:
             - name: file-volume
               mountPath: /opt/app-root/storage

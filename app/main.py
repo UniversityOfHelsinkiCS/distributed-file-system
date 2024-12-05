@@ -12,13 +12,17 @@ from .rpc import rpc_router
 FILE_DIRECTORY = "storage"
 
 node_id = os.environ.get("NODE_ID")
+raft_nodes = os.environ.get("RAFT_NODES")
 
 if not node_id:
     raise ValueError("NODE_ID environment variable is required")
 
+if not raft_nodes:
+    raise ValueError("RAFT_NODES environment variable is required")
+
 raft_node = RaftNode(
     node_id,
-    ["app-1:8000", "app-2:8000", "app-3:8000"],
+    raft_nodes.split(","),
     get_redis_store(),
 )
 
