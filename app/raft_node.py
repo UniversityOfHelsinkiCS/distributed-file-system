@@ -33,8 +33,8 @@ class RaftNode:
         self.voted_for = None
         self.log = []
         self.last_heartbeat = time.time()
-        self.election_timeout = random.uniform(1.5, 3.0)
-        self.heartbeat_interval = 0.5
+        self.election_timeout = random.uniform(5, 10)
+        self.heartbeat_interval = 3.0
         self.votes_received = 0
         self.lock = asyncio.Lock()
         self.redis = redis
