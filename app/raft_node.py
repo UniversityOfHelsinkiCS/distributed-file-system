@@ -33,8 +33,8 @@ class RaftNode:
         self.voted_for = None
         self.log = []
         self.last_heartbeat = time.time()
-        self.election_timeout = random.uniform(6, 10)
-        self.heartbeat_interval = 1
+        self.election_timeout = random.uniform(20, 30)
+        self.heartbeat_interval = 5
         self.votes_received = 0
         self.lock = asyncio.Lock()
         self.redis = redis
@@ -50,7 +50,7 @@ class RaftNode:
                     "candidate_id": self.node_id,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=15)
+            response = requests.post(f"http://{peer}/rpc", json=rpc_payload)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
@@ -86,7 +86,7 @@ class RaftNode:
                     "log": self.log,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=15)
+            response = requests.post(f"http://{peer}/rpc", json=rpc_payload)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
@@ -121,7 +121,7 @@ class RaftNode:
                         files.append(file)
                     rpc_payload["params"]["files"] = files
                     response = requests.post(
-                        f"http://{peer}/rpc", json=rpc_payload, timeout=15
+                        f"http://{peer}/rpc", json=rpc_payload
                     )
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
@@ -156,7 +156,7 @@ class RaftNode:
             self.current_term += 1
             self.voted_for = self.node_id
             self.votes_received = 1
-            self.election_timeout = random.uniform(6, 10)
+            self.election_timeout = random.uniform(20, 30)
             self.last_heartbeat = time.time()
             term = self.current_term
         print(f"Node {self.node_id} starting election for term {term}")
