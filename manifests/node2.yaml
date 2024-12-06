@@ -63,7 +63,7 @@ spec:
     spec:
       containers:
         - name: distributed-filesystem
-          image: tfhuhtal/distfilsyskub:2.0
+          image: toskakayttaja/distributed-filesystem:latest
           imagePullPolicy: Always
           resources:
             requests:
