@@ -4,8 +4,7 @@ import os
 import time
 import random
 from enum import Enum
-import requests
-from requests.exceptions import RequestException
+import httpx
 from .routes import FILE_DIRECTORY
 
 
@@ -27,14 +26,14 @@ class RaftState(Enum):
 class RaftNode:
     def __init__(self, node_id: str, peers: list[str], redis):
         self.node_id = node_id
-        self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000"]
+        self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000" and peer != f"distributed-filesystem-node-{self.node_id}:8080"]
         self.state = RaftState.FOLLOWER
         self.current_term = 0
         self.voted_for = None
         self.log = []
         self.last_heartbeat = time.time()
-        self.election_timeout = random.uniform(20, 30)
-        self.heartbeat_interval = 5
+        self.election_timeout = random.uniform(1.5, 3.0)
+        self.heartbeat_interval = 0.5
         self.votes_received = 0
         self.lock = asyncio.Lock()
         self.redis = redis
@@ -50,7 +49,8 @@ class RaftNode:
                     "candidate_id": self.node_id,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
@@ -72,7 +72,7 @@ class RaftNode:
                         await self.become_leader()
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
-        except RequestException as e:
+        except httpx.RequestError as e:
             print(f"Error contacting {peer}: {e}")
 
     async def send_append_entries(self, peer):
@@ -86,13 +86,12 @@ class RaftNode:
                     "log": self.log,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
-                resp_update_files = response_json.get("result", {}).get(
-                    "update_files", []
-                )
+                resp_update_files = response_json.get("result", {}).get("update_files", [])
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
@@ -120,12 +119,11 @@ class RaftNode:
                         }
                         files.append(file)
                     rpc_payload["params"]["files"] = files
-                    response = requests.post(
-                        f"http://{peer}/rpc", json=rpc_payload
-                    )
+                    async with httpx.AsyncClient() as client:
+                        await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
-        except RequestException as e:
+        except httpx.RequestError as e:
             print(f"Error contacting {peer}: {e}")
 
     async def run(self):
@@ -145,9 +143,7 @@ class RaftNode:
                 time_since_heartbeat = current_time - self.last_heartbeat
                 election_timeout = self.election_timeout
             if time_since_heartbeat >= election_timeout:
-                print(
-                    f"No heartbeat received for {election_timeout} seconds, starting election"
-                )
+                print(f"No heartbeat received for {election_timeout} seconds, starting election")
                 await self.start_election()
 
     async def start_election(self):
@@ -156,7 +152,7 @@ class RaftNode:
             self.current_term += 1
             self.voted_for = self.node_id
             self.votes_received = 1
-            self.election_timeout = random.uniform(20, 30)
+            self.election_timeout = random.uniform(1.5, 3.0)
             self.last_heartbeat = time.time()
             term = self.current_term
         print(f"Node {self.node_id} starting election for term {term}")
