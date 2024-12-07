@@ -174,14 +174,20 @@ class RaftNode:
         try:
             config.load_incluster_config()
             v1 = client.CoreV1Api()
-
+    
             namespace = "ohtuprojekti-staging"
             configmap_name = "distributed-filesystem-config"
             configmap = v1.read_namespaced_config_map(configmap_name, namespace)
-
+    
             configmap.data["LEADER_NODE"] = f"distributed-filesystem-node-{self.node_id}"
-
+    
             v1.patch_namespaced_config_map(configmap_name, namespace, configmap)
             print(f"Updated LEADER_NODE to {self.node_id} in configmap {configmap_name}")
-        except config.ConfigException:
+        except config.ConfigException as e:
+            print(f"ConfigException: {e}")
             print("Not running in a Kubernetes cluster, skipping leader update")
+        except client.exceptions.ApiException as e:
+            print(f"ApiException: {e}")
+            print(f"Failed to update ConfigMap {configmap_name} in namespace {namespace}")
+        except Exception as e:
+            print(f"Unexpected exception: {e}")
