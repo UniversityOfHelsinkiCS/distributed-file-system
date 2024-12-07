@@ -4,8 +4,8 @@ import os
 import time
 import random
 from enum import Enum
-import requests
-from requests.exceptions import RequestException
+import httpx
+from kubernetes import client, config
 from .routes import FILE_DIRECTORY
 
 
@@ -27,7 +27,7 @@ class RaftState(Enum):
 class RaftNode:
     def __init__(self, node_id: str, peers: list[str], redis):
         self.node_id = node_id
-        self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000"]
+        self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000" and peer != f"distributed-filesystem-node-{self.node_id}:8080"]
         self.state = RaftState.FOLLOWER
         self.current_term = 0
         self.voted_for = None
@@ -50,7 +50,8 @@ class RaftNode:
                     "candidate_id": self.node_id,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
@@ -72,7 +73,7 @@ class RaftNode:
                         await self.become_leader()
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
-        except RequestException as e:
+        except httpx.RequestError as e:
             print(f"Error contacting {peer}: {e}")
 
     async def send_append_entries(self, peer):
@@ -86,13 +87,12 @@ class RaftNode:
                     "log": self.log,
                 },
             }
-            response = requests.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
-                resp_update_files = response_json.get("result", {}).get(
-                    "update_files", []
-                )
+                resp_update_files = response_json.get("result", {}).get("update_files", [])
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
@@ -120,12 +120,11 @@ class RaftNode:
                         }
                         files.append(file)
                     rpc_payload["params"]["files"] = files
-                    response = requests.post(
-                        f"http://{peer}/rpc", json=rpc_payload, timeout=5
-                    )
+                    async with httpx.AsyncClient() as client:
+                        await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
             else:
                 print(f"Error from {peer}: {response.text} ({response.status_code})")
-        except RequestException as e:
+        except httpx.RequestError as e:
             print(f"Error contacting {peer}: {e}")
 
     async def run(self):
@@ -145,9 +144,7 @@ class RaftNode:
                 time_since_heartbeat = current_time - self.last_heartbeat
                 election_timeout = self.election_timeout
             if time_since_heartbeat >= election_timeout:
-                print(
-                    f"No heartbeat received for {election_timeout} seconds, starting election"
-                )
+                print(f"No heartbeat received for {election_timeout} seconds, starting election")
                 await self.start_election()
 
     async def start_election(self):
@@ -167,7 +164,43 @@ class RaftNode:
         async with self.lock:
             self.state = RaftState.LEADER
         print(f"Node {self.node_id} became leader in term {self.current_term}")
+        await self.update_leader_k8s()
 
     async def append_entries(self):
         keys = await self.redis.keys("*")
         self.log = keys
+
+    async def update_leader_k8s(self):
+        try:
+            config.load_incluster_config()
+            route_v1 = client.CustomObjectsApi()
+
+            namespace = "ohtuprojekti-staging"
+            route_name = "distributed-filesystem-route"
+
+            # Update Route
+            route = route_v1.get_namespaced_custom_object(
+                group="route.openshift.io",
+                version="v1",
+                namespace=namespace,
+                plural="routes",
+                name=route_name
+            )
+            route['spec']['to']['name'] = f"distributed-filesystem-node-{self.node_id}"
+            route_v1.patch_namespaced_custom_object(
+                group="route.openshift.io",
+                version="v1",
+                namespace=namespace,
+                plural="routes",
+                name=route_name,
+                body=route
+            )
+            print(f"Updated Route {route_name} to point to distributed-filesystem-node-{self.node_id}")
+        except config.ConfigException as e:
+            print(f"ConfigException: {e}")
+            print("Not running in a Kubernetes cluster, skipping leader update")
+        except client.exceptions.ApiException as e:
+            print(f"ApiException: {e}")
+            print(f"Failed to update Route {route_name} in namespace {namespace}")
+        except Exception as e:
+            print(f"Unexpected exception: {e}")

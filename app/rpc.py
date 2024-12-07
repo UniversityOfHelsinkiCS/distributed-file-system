@@ -19,7 +19,7 @@ class RPCRequest(BaseModel):
 
 class HeartbeatParams(BaseModel):
     term: int
-    log: list[int]
+    log: list[str]
 
 
 class RequestVoteParams(BaseModel):
@@ -40,7 +40,10 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
         for hash in params.log:
             if hash not in raft_node.log:
                 missing_files.append(hash)
-        print(f"filesave missmatch between nodes, copying {missing_files} files from leader")
+        if missing_files:
+            print(
+                f"filesave missmatch between nodes, copying {missing_files} files from leader"
+            )
         response["update_files"] = missing_files
 
         if term > raft_node.current_term:

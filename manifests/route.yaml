@@ -11,7 +11,7 @@ spec:
   host: distributed-filesystem.ext.ocp-prod-0.k8s.it.helsinki.fi
   to:
     kind: Service
-    name: distributed-filesystem-service
+    name: undefined #this will be defined by app when running in oc 
   port:
     targetPort: 8080-tcp
   tls:

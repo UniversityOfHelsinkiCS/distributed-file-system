@@ -6,6 +6,7 @@ from io import BytesIO
 
 # Set NODE_ID environment variable before importing the app
 os.environ["NODE_ID"] = "test-node-id"
+os.environ["RAFT_NODES"] = "node1,node2,node3"
 
 from ..main import app
 from ..redis_client import get_redis_store
