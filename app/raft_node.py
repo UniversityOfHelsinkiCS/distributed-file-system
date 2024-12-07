@@ -173,7 +173,6 @@ class RaftNode:
     async def update_leader_k8s(self):
         try:
             config.load_incluster_config()
-            v1 = client.CoreV1Api()
             route_v1 = client.CustomObjectsApi()
 
             namespace = "ohtuprojekti-staging"
@@ -202,6 +201,6 @@ class RaftNode:
             print("Not running in a Kubernetes cluster, skipping leader update")
         except client.exceptions.ApiException as e:
             print(f"ApiException: {e}")
-            print(f"Failed to update ConfigMap Route {route_name} in namespace {namespace}")
+            print(f"Failed to update Route {route_name} in namespace {namespace}")
         except Exception as e:
             print(f"Unexpected exception: {e}")
