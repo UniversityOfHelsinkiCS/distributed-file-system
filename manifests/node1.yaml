@@ -91,11 +91,6 @@ spec:
                 configMapKeyRef:
                   name: distributed-filesystem-config
                   key: NODE_1_REDIS_PASSWORD
-            - name: LEADER_NODE
-              valueFrom:
-                configMapKeyRef:
-                  name: distributed-filesystem-config
-                  key: LEADER_NODE
             - name: RAFT_NODES
               valueFrom:
                 configMapKeyRef:

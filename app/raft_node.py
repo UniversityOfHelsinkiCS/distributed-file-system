@@ -174,20 +174,34 @@ class RaftNode:
         try:
             config.load_incluster_config()
             v1 = client.CoreV1Api()
-    
+            route_v1 = client.CustomObjectsApi()
+
             namespace = "ohtuprojekti-staging"
-            configmap_name = "distributed-filesystem-config"
-            configmap = v1.read_namespaced_config_map(configmap_name, namespace)
-    
-            configmap.data["LEADER_NODE"] = f"distributed-filesystem-node-{self.node_id}"
-    
-            v1.patch_namespaced_config_map(configmap_name, namespace, configmap)
-            print(f"Updated LEADER_NODE to {self.node_id} in configmap {configmap_name}")
+            route_name = "distributed-filesystem-route"
+
+            # Update Route
+            route = route_v1.get_namespaced_custom_object(
+                group="route.openshift.io",
+                version="v1",
+                namespace=namespace,
+                plural="routes",
+                name=route_name
+            )
+            route['spec']['to']['name'] = f"distributed-filesystem-node-{self.node_id}"
+            route_v1.patch_namespaced_custom_object(
+                group="route.openshift.io",
+                version="v1",
+                namespace=namespace,
+                plural="routes",
+                name=route_name,
+                body=route
+            )
+            print(f"Updated Route {route_name} to point to distributed-filesystem-node-{self.node_id}")
         except config.ConfigException as e:
             print(f"ConfigException: {e}")
             print("Not running in a Kubernetes cluster, skipping leader update")
         except client.exceptions.ApiException as e:
             print(f"ApiException: {e}")
-            print(f"Failed to update ConfigMap {configmap_name} in namespace {namespace}")
+            print(f"Failed to update ConfigMap Route {route_name} in namespace {namespace}")
         except Exception as e:
             print(f"Unexpected exception: {e}")

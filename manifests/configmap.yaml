@@ -5,7 +5,6 @@ metadata:
   labels:
     app: distributed-filesystem
 data:
-  LEADER_NODE: "distributed-filesystem-node-1"
   RAFT_NODES: "distributed-filesystem-node-1:8080,distributed-filesystem-node-2:8080,distributed-filesystem-node-3:8080"
   NODE_1_ID: "1"
   NODE_1_REDIS_HOST: "redis-1"
