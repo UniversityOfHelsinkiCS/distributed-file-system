@@ -5,6 +5,7 @@ import time
 import random
 from enum import Enum
 import httpx
+from kubernetes import client, config
 from .routes import FILE_DIRECTORY
 
 
@@ -163,7 +164,24 @@ class RaftNode:
         async with self.lock:
             self.state = RaftState.LEADER
         print(f"Node {self.node_id} became leader in term {self.current_term}")
+        await self.update_leader_k8s()
 
     async def append_entries(self):
         keys = await self.redis.keys("*")
         self.log = keys
+
+    async def update_leader_k8s(self):
+        try:
+            config.load_incluster_config()
+            v1 = client.CoreV1Api()
+
+            namespace = "ohtuprojekti-staging"
+            configmap_name = "distributed-filesystem-config"
+            configmap = v1.read_namespaced_config_map(configmap_name, namespace)
+
+            configmap.data["LEADER_NODE"] = f"distributed-filesystem-node-{self.node_id}"
+
+            v1.patch_namespaced_config_map(configmap_name, namespace, configmap)
+            print(f"Updated LEADER_NODE to {self.node_id} in configmap {configmap_name}")
+        except config.ConfigException:
+            print("Not running in a Kubernetes cluster, skipping leader update")
