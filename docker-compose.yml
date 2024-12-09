@@ -1,20 +1,28 @@
-services:
-  app-1:
+x-common:
+  app-config: &app-config
     build:
       dockerfile: dev.Dockerfile
     tty: true
-    ports:
-      - "8000:8000"
     volumes:
       - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
+
+  common-env: &common-env
+    REDIS_PORT: 6379
+    REDIS_PASSWORD: supersecret
+    RAFT_NODES: "app-1:8000,app-2:8000,app-3:8000"
+    TZ: "Europe/Helsinki"
+
+services:
+  app-1:
+    <<: *app-config
+    ports:
+      - "8000:8000"
     container_name: app-1
     environment:
+      <<: *common-env
       REDIS_HOST: redis-1
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: supersecret
       NODE_ID: 1
-      RAFT_NODES: "app-1:8000,app-2:8000,app-3:8000"
     depends_on:
       - redis-1
 
@@ -28,21 +36,14 @@ services:
       - redis-data-1:/data
 
   app-2:
-    build:
-      dockerfile: dev.Dockerfile
-    tty: true
+    <<: *app-config
     ports:
       - "8001:8000"
-    volumes:
-      - ./storage:/opt/app-root/src/storage
-      - ./app:/opt/app-root/src/app
     container_name: app-2
     environment:
+      <<: *common-env
       REDIS_HOST: redis-2
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: supersecret
       NODE_ID: 2
-      RAFT_NODES: "app-1:8000,app-2:8000,app-3:8000"
     depends_on:
       - redis-2
 
@@ -56,21 +57,14 @@ services:
       - redis-data-2:/data
 
   app-3:
-    build:
-      dockerfile: dev.Dockerfile
-    tty: true
+    <<: *app-config
     ports:
       - "8002:8000"
-    volumes:
-      - ./storage:/opt/app-root/src/storage
-      - ./app:/opt/app-root/src/app
     container_name: app-3
     environment:
+      <<: *common-env
       REDIS_HOST: redis-3
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: supersecret
       NODE_ID: 3
-      RAFT_NODES: "app-1:8000,app-2:8000,app-3:8000"
     depends_on:
       - redis-3
 

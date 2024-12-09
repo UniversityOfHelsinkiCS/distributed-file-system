@@ -1,7 +1,10 @@
 import os
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
+
+from .logger import logger
 from .redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
@@ -13,6 +16,8 @@ templates = Jinja2Templates(directory="app/templates")
 
 @router.post("/upload")
 async def upload(file: UploadFile, store=Depends(get_redis_store)):
+    if not file.size or not file.filename:
+        raise HTTPException(status_code=400, detail="File is empty")
     try:
         filename_hash = hash(file.filename)
         exists = await store.exists(filename_hash)
@@ -44,10 +49,12 @@ async def upload(file: UploadFile, store=Depends(get_redis_store)):
 
 @router.get("/get/{filename}")
 async def get(filename: str):
+    file = Path(os.path.join(FILE_DIRECTORY, filename))
+    if not file.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
     try:
         return FileResponse(os.path.join(FILE_DIRECTORY, filename), filename=filename)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found")
     except Exception:
         raise HTTPException(status_code=500, detail="Something went wrong")
 
@@ -61,9 +68,8 @@ async def main(request: Request, store=Depends(get_redis_store)):
             metadata = await store.hgetall(key)
             files.append(metadata.get("filename", "Unknown"))
 
-        file_list = files if files else "No files uploaded yet"
         return templates.TemplateResponse(
-            request=request, name="index.html", context={"file_list": file_list}
+            request=request, name="index.html", context={"file_list": files}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
@@ -71,5 +77,5 @@ async def main(request: Request, store=Depends(get_redis_store)):
 
 @router.get("/ping")
 async def ping():
-    print("RECEIVED PING")
+    logger.info("RECEIVED PING")
     return {"message": "pong"}

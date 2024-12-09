@@ -6,6 +6,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from .logger import logger
 from .routes import FILE_DIRECTORY
 from .raft_node import RaftNode, RaftState
 
@@ -34,15 +35,15 @@ class TransferFilesParams(BaseModel):
 async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
     async with raft_node.lock:
         term = params.term
-        print(f"Received heartbeat for term {term}")
+        logger.debug(f"Received heartbeat for term {term}")
         response = {"term": raft_node.current_term}
         missing_files = []
         for hash in params.log:
             if hash not in raft_node.log:
                 missing_files.append(hash)
         if missing_files:
-            print(
-                f"filesave missmatch between nodes, copying {missing_files} files from leader"
+            logger.info(
+                f"Filesave missmatch between nodes, copying {missing_files} files from leader"
             )
         response["update_files"] = missing_files
 
@@ -50,16 +51,16 @@ async def heartbeat(raft_node: RaftNode, params: HeartbeatParams):
             raft_node.current_term = term
             raft_node.state = RaftState.FOLLOWER
             raft_node.voted_for = None
-            print(f"Stepping down to follower due to higher term {term}")
+            logger.info(f"Stepping down to follower due to higher term {term}")
         elif term == raft_node.current_term:
             if raft_node.state != RaftState.FOLLOWER:
                 raft_node.state = RaftState.FOLLOWER
                 raft_node.voted_for = None
-                print(
+                logger.info(
                     f"Stepping down to follower due to heartbeat from leader in same term {term}"
                 )
         else:
-            print(f"Received stale heartbeat from term {term}")
+            logger.info(f"Received stale heartbeat from term {term}")
             return response
         raft_node.last_heartbeat = time.time()
         return response
@@ -69,10 +70,12 @@ async def request_vote(raft_node: RaftNode, params: RequestVoteParams):
     async with raft_node.lock:
         term = params.term
         candidate_id = params.candidate_id
-        print(f"Received vote request from {candidate_id} for term {term}")
+        logger.info(f"Received vote request from {candidate_id} for term {term}")
 
         if term < raft_node.current_term:
-            print(f"Rejecting vote request from {candidate_id} for stale term {term}")
+            logger.info(
+                f"Rejecting vote request from {candidate_id} for stale term {term}"
+            )
             return {"term": raft_node.current_term, "vote_granted": False}
 
         if term > raft_node.current_term:
@@ -85,9 +88,9 @@ async def request_vote(raft_node: RaftNode, params: RequestVoteParams):
             raft_node.voted_for = candidate_id
             vote_granted = True
             raft_node.last_heartbeat = time.time()
-            print(f"Voted for {candidate_id} in term {term}")
+            logger.info(f"Voted for {candidate_id} in term {term}")
         else:
-            print(
+            logger.info(
                 f"Did not vote for {candidate_id} in term {term}; already voted for {raft_node.voted_for}"
             )
 
@@ -106,7 +109,7 @@ async def transfer_files(raft_node: RaftNode, params: TransferFilesParams):
         with open(os.path.join(FILE_DIRECTORY, file_name), "wb") as f:
             f.write(file_data)
         await raft_node.redis.hmset(file["hash"], file_metadata)
-    print("filesave consistency updated successfully")
+    logger.info("Filesave consistency updated successfully")
     return "success"
 
 

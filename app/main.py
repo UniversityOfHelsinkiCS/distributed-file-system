@@ -3,6 +3,8 @@ import os
 import asyncio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
+from .middleware import LoggingMiddleware
 from .redis_client import get_redis_store
 
 from .raft_node import RaftNode
@@ -45,6 +47,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(LoggingMiddleware)
 app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 app.raft_node = raft_node
 
