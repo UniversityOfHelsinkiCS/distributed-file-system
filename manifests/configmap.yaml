@@ -18,3 +18,4 @@ data:
   NODE_3_REDIS_HOST: "redis-3"
   NODE_3_REDIS_PORT: "6379"
   NODE_3_REDIS_PASSWORD: "supersecret"
+  TZ: "Europe/Helsinki"
