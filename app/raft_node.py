@@ -6,6 +6,8 @@ import random
 from enum import Enum
 import httpx
 from kubernetes import client, config
+
+from .logger import logger
 from .routes import FILE_DIRECTORY
 
 
@@ -27,7 +29,15 @@ class RaftState(Enum):
 class RaftNode:
     def __init__(self, node_id: str, peers: list[str], redis):
         self.node_id = node_id
-        self.peers = [peer for peer in peers if peer != f"app-{self.node_id}:8000" and peer != f"distributed-filesystem-node-{self.node_id}:8080"]
+        self.peers = [
+            peer
+            for peer in peers
+            if peer
+            not in [
+                f"app-{self.node_id}:8000",
+                f"distributed-filesystem-node-{self.node_id}:8080",
+            ]
+        ]
         self.state = RaftState.FOLLOWER
         self.current_term = 0
         self.voted_for = None
@@ -51,7 +61,9 @@ class RaftNode:
                 },
             }
             async with httpx.AsyncClient() as client:
-                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
+                response = await client.post(
+                    f"http://{peer}/rpc", json=rpc_payload, timeout=5
+                )
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
@@ -61,20 +73,25 @@ class RaftNode:
                         self.state = RaftState.FOLLOWER
                         self.voted_for = None
                         self.last_heartbeat = time.time()
-                    print(f"Stepping down to follower due to higher term from {peer}")
+                    logger.info(
+                        f"Stepping down to follower due to higher term from {peer}"
+                    )
                     return
                 if response_json.get("result", {}).get("vote_granted"):
                     async with self.lock:
                         self.votes_received += 1
                         votes = self.votes_received
                         total_nodes = len(self.peers) + 1
-                    print(f"Received vote from {peer}")
+                    logger.info(f"Received vote from {peer}")
                     if votes > total_nodes // 2:
                         await self.become_leader()
             else:
-                print(f"Error from {peer}: {response.text} ({response.status_code})")
+                logger.error(
+                    f"Error from {peer}: {response.text} ({response.status_code})",
+                    exc_info=True,
+                )
         except httpx.RequestError as e:
-            print(f"Error contacting {peer}: {e}")
+            logger.error(f"Error contacting {peer}: {e}", exc_info=True)
 
     async def send_append_entries(self, peer):
         async with self.lock:
@@ -88,18 +105,24 @@ class RaftNode:
                 },
             }
             async with httpx.AsyncClient() as client:
-                response = await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
+                response = await client.post(
+                    f"http://{peer}/rpc", json=rpc_payload, timeout=5
+                )
             if response.status_code == 200:
                 response_json = response.json()
                 resp_term = response_json.get("result", {}).get("term")
-                resp_update_files = response_json.get("result", {}).get("update_files", [])
+                resp_update_files = response_json.get("result", {}).get(
+                    "update_files", []
+                )
                 if resp_term > term:
                     async with self.lock:
                         self.current_term = resp_term
                         self.state = RaftState.FOLLOWER
                         self.voted_for = None
                         self.last_heartbeat = time.time()
-                    print(f"Stepping down to follower due to higher term from {peer}")
+                    logger.info(
+                        f"Stepping down to follower due to higher term from {peer}"
+                    )
                 if len(resp_update_files) > 0:
                     rpc_payload = {
                         "method": "transfer_files",
@@ -121,18 +144,23 @@ class RaftNode:
                         files.append(file)
                     rpc_payload["params"]["files"] = files
                     async with httpx.AsyncClient() as client:
-                        await client.post(f"http://{peer}/rpc", json=rpc_payload, timeout=5)
+                        await client.post(
+                            f"http://{peer}/rpc", json=rpc_payload, timeout=5
+                        )
             else:
-                print(f"Error from {peer}: {response.text} ({response.status_code})")
+                logger.error(
+                    f"Error from {peer}: {response.text} ({response.status_code})",
+                    exc_info=True,
+                )
         except httpx.RequestError as e:
-            print(f"Error contacting {peer}: {e}")
+            logger.error(f"Error contacting {peer}: {e}", exc_info=True)
 
     async def run(self):
         async with self.lock:
             current_time = time.time()
             state = self.state
             term = self.current_term
-        print(f"Node {self.node_id} in state {state} at term {term}")
+        logger.debug(f"Node {self.node_id} in state {state} at term {term}")
         await self.append_entries()
         if state == RaftState.LEADER:
             async with self.lock:
@@ -144,7 +172,9 @@ class RaftNode:
                 time_since_heartbeat = current_time - self.last_heartbeat
                 election_timeout = self.election_timeout
             if time_since_heartbeat >= election_timeout:
-                print(f"No heartbeat received for {election_timeout} seconds, starting election")
+                logger.info(
+                    f"No heartbeat received for {election_timeout} seconds, starting election"
+                )
                 await self.start_election()
 
     async def start_election(self):
@@ -156,14 +186,14 @@ class RaftNode:
             self.election_timeout = random.uniform(1.5, 3.0)
             self.last_heartbeat = time.time()
             term = self.current_term
-        print(f"Node {self.node_id} starting election for term {term}")
+        logger.info(f"Node {self.node_id} starting election for term {term}")
         for peer in self.peers:
             await self.send_request_vote(peer)
 
     async def become_leader(self):
         async with self.lock:
             self.state = RaftState.LEADER
-        print(f"Node {self.node_id} became leader in term {self.current_term}")
+        logger.info(f"Node {self.node_id} became leader in term {self.current_term}")
         await self.update_leader_k8s()
 
     async def append_entries(self):
@@ -184,23 +214,28 @@ class RaftNode:
                 version="v1",
                 namespace=namespace,
                 plural="routes",
-                name=route_name
+                name=route_name,
             )
-            route['spec']['to']['name'] = f"distributed-filesystem-node-{self.node_id}"
+            route["spec"]["to"]["name"] = f"distributed-filesystem-node-{self.node_id}"
             route_v1.patch_namespaced_custom_object(
                 group="route.openshift.io",
                 version="v1",
                 namespace=namespace,
                 plural="routes",
                 name=route_name,
-                body=route
+                body=route,
             )
-            print(f"Updated Route {route_name} to point to distributed-filesystem-node-{self.node_id}")
+            logger.info(
+                f"Updated Route {route_name} to point to distributed-filesystem-node-{self.node_id}"
+            )
         except config.ConfigException as e:
-            print(f"ConfigException: {e}")
-            print("Not running in a Kubernetes cluster, skipping leader update")
+            logger.error(f"ConfigException: {e}")
+            logger.info("Not running in a Kubernetes cluster, skipping leader update")
         except client.exceptions.ApiException as e:
-            print(f"ApiException: {e}")
-            print(f"Failed to update Route {route_name} in namespace {namespace}")
+            logger.error(f"ApiException: {e}", exc_info=True)
+            logger.error(
+                f"Failed to update Route {route_name} in namespace {namespace}",
+                exc_info=True,
+            )
         except Exception as e:
-            print(f"Unexpected exception: {e}")
+            logger.error(f"Unexpected exception: {e}", exc_info=True)

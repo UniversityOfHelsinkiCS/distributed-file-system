@@ -2,6 +2,8 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
+
+from .logger import logger
 from .redis_client import get_redis_store
 
 FILE_DIRECTORY = "storage"
@@ -70,5 +72,5 @@ async def main(request: Request, store=Depends(get_redis_store)):
 
 @router.get("/ping")
 async def ping():
-    print("RECEIVED PING")
+    logger.info("RECEIVED PING")
     return {"message": "pong"}
