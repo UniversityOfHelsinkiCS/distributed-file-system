@@ -15,11 +15,15 @@
           </form>
         </div>
         <h2>Uploaded files</h2>
+        {% if not file_list %}
+        <div>No files uploaded yet</div>
+        {% else %}
         <ul>
           {% for file in file_list %}
-          <li>{{ file }}</li>
+          <li><a href="/get/{{ file }}">{{ file }}</a></li>
           {% endfor %}
         </ul>
+        {% endif %}
       </div>
     </div>
   </body>

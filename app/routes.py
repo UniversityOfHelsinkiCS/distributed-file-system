@@ -61,9 +61,8 @@ async def main(request: Request, store=Depends(get_redis_store)):
             metadata = await store.hgetall(key)
             files.append(metadata.get("filename", "Unknown"))
 
-        file_list = files if files else "No files uploaded yet"
         return templates.TemplateResponse(
-            request=request, name="index.html", context={"file_list": file_list}
+            request=request, name="index.html", context={"file_list": files}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {e}")
