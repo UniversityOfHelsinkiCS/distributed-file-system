@@ -22,6 +22,7 @@ $ pip install -r requirements.txt
 ```bash
 # Create storage directory if it doesn't exist
 $ mkdir storage
+
 # Starts the application with three replicas in ports 8000, 8001, and 8002
 $ docker compose up
 ```
@@ -127,7 +128,7 @@ graph TD;
     end
 
     Client
-    Client <--> K8s[K8s Ingress];
+    Client <--> K8s[OpenShift route];
 
     K8s <-.-> N1;
     K8s <-.-> N2;
