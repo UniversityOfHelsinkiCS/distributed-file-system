@@ -117,7 +117,7 @@ class RaftNode:
                     exc_info=True,
                 )
         except httpx.RequestError as e:
-            logger.error(f"Error contacting {peer}: {e}", exc_info=True)
+            logger.error(f"Error contacting {peer}: {e}", exc_info=False)
 
     async def send_append_entries(self, peer: str):
         async with self.lock:
