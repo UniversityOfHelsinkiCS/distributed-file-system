@@ -6,8 +6,8 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from .constants import FILE_DIRECTORY
 from .logger import logger
-from .routes import FILE_DIRECTORY
 from .raft_node import RaftNode, RaftState
 
 rpc_router = APIRouter()

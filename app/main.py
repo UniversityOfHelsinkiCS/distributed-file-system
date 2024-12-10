@@ -4,14 +4,12 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from .constants import FILE_DIRECTORY
 from .middleware import LoggingMiddleware
-from .redis_client import get_redis_store
-
 from .raft_node import RaftNode
+from .redis_client import get_redis_store
 from .routes import router as routes_router
 from .rpc import rpc_router
-
-FILE_DIRECTORY = "storage"
 
 node_id = os.environ.get("NODE_ID")
 raft_nodes = os.environ.get("RAFT_NODES")

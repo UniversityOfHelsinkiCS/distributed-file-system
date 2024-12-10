@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
 
+from .constants import FILE_DIRECTORY
 from .logger import logger
 from .redis_client import get_redis_store
-
-FILE_DIRECTORY = "storage"
 
 router = APIRouter()
 

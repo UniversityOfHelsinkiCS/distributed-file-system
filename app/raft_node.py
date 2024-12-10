@@ -7,8 +7,8 @@ from enum import Enum
 import httpx
 from kubernetes import client, config
 
+from .constants import FILE_DIRECTORY
 from .logger import logger
-from .routes import FILE_DIRECTORY
 
 
 class LogEntry:
