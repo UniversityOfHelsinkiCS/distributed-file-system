@@ -4,7 +4,6 @@ x-common:
       dockerfile: dev.Dockerfile
     tty: true
     volumes:
-      - ./storage:/opt/app-root/src/storage
       - ./app:/opt/app-root/src/app
 
   common-env: &common-env

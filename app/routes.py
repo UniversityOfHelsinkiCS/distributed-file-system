@@ -3,11 +3,12 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
+from redis import Redis
 
+from .constants import FILE_DIRECTORY
 from .logger import logger
+from .raft_node import LogEntry
 from .redis_client import get_redis_store
-
-FILE_DIRECTORY = "storage"
 
 router = APIRouter()
 
@@ -15,25 +16,25 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.post("/upload")
-async def upload(file: UploadFile, store=Depends(get_redis_store)):
+async def upload(request: Request, file: UploadFile):
     if not file.size or not file.filename:
         raise HTTPException(status_code=400, detail="File is empty")
     try:
-        filename_hash = hash(file.filename)
-        exists = await store.exists(filename_hash)
-        if exists:
+        file_path = Path(os.path.join(FILE_DIRECTORY, file.filename))
+        if file_path.is_file():
             raise FileExistsError
 
         contents = await file.read()
         with open(os.path.join(FILE_DIRECTORY, file.filename), "wb") as f:
             f.write(contents)
 
-        file_metadata = {
+        command = {
+            "operation": "upload",
             "filename": file.filename,
             "content_type": file.content_type,
             "file_size": len(contents),
         }
-        await store.hmset(filename_hash, file_metadata)
+        await request.app.raft_node.add_command(command)
 
     except FileExistsError:
         raise HTTPException(
@@ -60,13 +61,14 @@ async def get(filename: str):
 
 
 @router.get("/")
-async def main(request: Request, store=Depends(get_redis_store)):
+async def main(request: Request, store: Redis = Depends(get_redis_store)):
     try:
-        keys = await store.keys("*")
+        raft_log = await store.lrange("raft_log", 0, -1)
         files = []
-        for key in keys:
-            metadata = await store.hgetall(key)
-            files.append(metadata.get("filename", "Unknown"))
+
+        for entry in raft_log:
+            filename = LogEntry.from_json(entry).command["filename"]
+            files.append(filename)
 
         return templates.TemplateResponse(
             request=request, name="index.html", context={"file_list": files}

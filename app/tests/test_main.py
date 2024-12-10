@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock
@@ -15,10 +16,6 @@ from ..redis_client import get_redis_store
 @pytest.fixture
 def mock_redis_store():
     mock_store = AsyncMock()
-    mock_store.exists = AsyncMock()
-    mock_store.hmset = AsyncMock()
-    mock_store.keys = AsyncMock()
-    mock_store.hgetall = AsyncMock()
     return mock_store
 
 
@@ -28,6 +25,14 @@ def client(mock_redis_store):
     app.dependency_overrides[get_redis_store] = lambda: mock_redis_store
     client = TestClient(app)
     return client
+
+
+def setup_module():
+    try:
+        if Path("storage/test.txt").is_file():
+            os.remove("storage/test.txt")
+    except Exception:
+        pass
 
 
 def test_main_page(client, mock_redis_store):
@@ -44,12 +49,9 @@ def test_main_page(client, mock_redis_store):
         - The response should list the uploaded file "test.txt".
     """
 
-    mock_redis_store.keys.return_value = [str(hash("test.txt"))]
-    mock_redis_store.hgetall.return_value = {
-        "filename": "test.txt",
-        "content_type": "text/plain",
-        "file_size": "12",
-    }
+    mock_redis_store.lrange.return_value = [
+        '{"term": 1, "index": 1, "command": {"operation": "upload", "filename": "test.txt", "content_type": "text/plain", "file_size": 12}}'
+    ]
 
     response = client.get("/")
 
@@ -59,7 +61,7 @@ def test_main_page(client, mock_redis_store):
     assert "test.txt" in response.text
 
 
-def test_upload_file(client, mock_redis_store):
+def test_upload_file(client):
     """
     Test the file upload functionality of the application.
 
@@ -70,7 +72,6 @@ def test_upload_file(client, mock_redis_store):
     """
     file_data = BytesIO(b"test content")  # Generate temporary runtime file
     file_data.name = "test.txt"
-    mock_redis_store.exists.return_value = False  # Simulate that the file doesn't exist
 
     response = client.post(
         "/upload", files={"file": ("test.txt", file_data, "text/plain")}
@@ -78,10 +79,9 @@ def test_upload_file(client, mock_redis_store):
 
     assert response.status_code == 200
     assert response.json() == {"message": "Successfully uploaded test.txt"}
-    mock_redis_store.hmset.assert_called_once()
 
 
-def test_upload_existing_file(client, mock_redis_store):
+def test_upload_existing_file(client):
     """
     Test the upload of an existing file.
 
@@ -91,7 +91,6 @@ def test_upload_existing_file(client, mock_redis_store):
     """
     file_data = BytesIO(b"test content")  # Generate temporary runtime file
     file_data.name = "test.txt"
-    mock_redis_store.exists.return_value = True  # Simulate that the file already exists
 
     response = client.post(
         "/upload", files={"file": ("test.txt", file_data, "text/plain")}
@@ -103,23 +102,38 @@ def test_upload_existing_file(client, mock_redis_store):
     }
 
 
-def test_upload_file_error(client, mock_redis_store):
+def test_upload_empty_file(client):
     """
-    Test the file upload endpoint when there is an error with the Redis store.
+    Test the upload of an empty file.
+
+    Asserts:
+        The response status code is 400.
+        The response JSON contains the appropriate error message.
+    """
+    file_data = BytesIO(b"")  # Generate temporary runtime file
+    file_data.name = "test.txt"
+
+    response = client.post(
+        "/upload", files={"file": ("test.txt", file_data, "text/plain")}
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "File is empty"}
+
+
+def test_get_files_error(client, mock_redis_store):
+    """
+    Test the `GET /` endpoint when there is an error with the Redis store.
 
     Asserts:
         The response status code is 500.
         The response JSON contains the relevant error message.
     """
-    file_data = BytesIO(b"test content")
-    file_data.name = "test.txt"
-    mock_redis_store.exists.side_effect = Exception(
+    mock_redis_store.lrange.side_effect = Exception(
         "Redis error"
     )  # Simulate a Redis failure
 
-    response = client.post(
-        "/upload", files={"file": ("test.txt", file_data, "text/plain")}
-    )
+    response = client.get("/")
 
     assert response.status_code == 500
     assert response.json() == {"detail": "Something went wrong: Redis error"}
