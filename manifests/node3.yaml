@@ -96,6 +96,11 @@ spec:
                 configMapKeyRef:
                   name: distributed-filesystem-config
                   key: RAFT_NODES
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: TZ
           volumeMounts:
             - name: file-volume
               mountPath: /opt/app-root/storage
