@@ -62,8 +62,8 @@ class RaftNode:
         self.voted_for = None
         self.log: list[LogEntry] = []
         self.last_heartbeat = time.time()
-        self.election_timeout = random.uniform(1.5, 3.0)
-        self.heartbeat_interval = 0.5
+        self.election_timeout = random.uniform(5, 10)
+        self.heartbeat_interval = 2
         self.votes_received = 0
         self.lock = asyncio.Lock()
         self.redis = redis
@@ -275,7 +275,7 @@ class RaftNode:
             self.current_term += 1
             self.voted_for = self.node_id
             self.votes_received = 1
-            self.election_timeout = random.uniform(1.5, 3.0)
+            self.election_timeout = random.uniform(5, 10)
             self.last_heartbeat = time.time()
             term = self.current_term
         logger.info(f"Node {self.node_id} starting election for term {term}")
