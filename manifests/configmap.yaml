@@ -5,7 +5,7 @@ metadata:
   labels:
     app: distributed-filesystem
 data:
-  RAFT_NODES: "distributed-filesystem-node-1:8080,distributed-filesystem-node-2:8080,distributed-filesystem-node-3:8080"
+  RAFT_NODES: "distributed-filesystem-node-1:8080,distributed-filesystem-node-2:8080,distributed-filesystem-node-3:8080,distributed-filesystem-node-N:8080"
   NODE_1_ID: "1"
   NODE_1_REDIS_HOST: "redis-1"
   NODE_1_REDIS_PORT: "6379"
@@ -18,4 +18,8 @@ data:
   NODE_3_REDIS_HOST: "redis-3"
   NODE_3_REDIS_PORT: "6379"
   NODE_3_REDIS_PASSWORD: "supersecret"
+  NODE_N_ID: "N"
+  NODE_N_REDIS_HOST: "redis-N"
+  NODE_N_REDIS_PORT: "6379"
+  NODE_N_REDIS_PASSWORD: "supersecret"
   TZ: "Europe/Helsinki"

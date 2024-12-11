@@ -1,0 +1,186 @@
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-bucket-node-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  storageClassName: pomppa25-new
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: distributed-filesystem-node-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  selector:
+    app: distributed-filesystem
+    node: "N"
+  ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distributed-filesystem-node-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: distributed-filesystem
+      node: "N"
+  template:
+    metadata:
+      labels:
+        app: distributed-filesystem
+        node: "N"
+    spec:
+      containers:
+        - name: distributed-filesystem
+          image: toskakayttaja/distributed-filesystem:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "100Mi"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: NODE_N_ID
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: NODE_N_REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: NODE_N_REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: NODE_N_REDIS_PASSWORD
+            - name: RAFT_NODES
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: RAFT_NODES
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: TZ
+          volumeMounts:
+            - name: file-volume
+              mountPath: /opt/app-root/storage
+      volumes:
+        - name: file-volume
+          persistentVolumeClaim:
+            claimName: file-bucket-node-N
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-N
+  template:
+    metadata:
+      labels:
+        app: redis-N
+    spec:
+      containers:
+        - name: redis-N
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          command: ["redis-server", "--requirepass", "supersecret"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: distributed-filesystem-redis-claim-node-1
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: distributed-filesystem-redis-claim-node-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  storageClassName: pomppa25-new
+  volumeMode: Filesystem
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-N
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/instance: distributed-filesystem-node-N
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  ports:
+    - name: 6379-tcp
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: redis-N
