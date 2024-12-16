@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 import os
 import asyncio
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
 from .constants import FILE_DIRECTORY
 from .middleware import LoggingMiddleware
@@ -46,7 +45,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(LoggingMiddleware)
-app.mount("/app/static", StaticFiles(directory="app/static"), name="static")
 app.raft_node = raft_node
 
 app.include_router(routes_router)
