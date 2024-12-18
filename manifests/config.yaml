@@ -19,13 +19,27 @@ spec:
         app: distributed-filesystem
     spec:
       initContainers:
-        - name: init-raft-nodes
-          image: busybox
-          command: ['sh', '-c', 'for i in $(seq 0 $((REPLICAS-1))); do echo -n "distributed-filesystem-node-${i}:8080,"; done | sed "s/,$//" > /etc/config/raft_nodes']
-          volumeMounts:
-            - name: config-volume
-              mountPath: /etc/config
-      containers:
+        - name: patch-configmap
+          image: bitnami/kubectl:latest # Image that includes kubectl
+          command:
+            - sh
+            - -c
+            - |
+              replicas=$(kubectl get statefulset distributed-filesystem-node -o yaml | grep 'spec.replicas:' | awk '{print $2}')
+
+              # Step 2: Generate the replica-paths string
+              replica_paths=""
+              for i in $(seq 1 "$replicas"); do
+                replica_paths+="distribute-filesystem-node-$i:8080;"
+              done
+              # Remove the trailing semicolon
+              replica_paths=${replica_paths%;}
+
+              echo "Generated replica paths: $replica_paths"
+
+              # Step 3: Patch the ConfigMap to update data.replica-paths
+              kubectl patch configmap distributed-filesystem-config --type='merge' -p "{\"data\":{\"replica-paths\":\"$replica_paths\"}}"
+        containers:
         - name: distributed-filesystem
           image: toskakayttaja/distributed-filesystem:latest
           imagePullPolicy: Always
@@ -47,22 +61,16 @@ spec:
                 configMapKeyRef:
                   name: distributed-filesystem-config
                   key: RAFT_NODES
-              valueFrom:
-                configMapKeyRef:
-                  name: distributed-filesystem-config
       volumes:
         - name: config-volume
           configMap:
             name: distributed-filesystem-config
-  volumeClaimTemplates:
-            - name: TZ
-              value: "Europe/Helsinki"
-          volumeMounts:
-            - name: file-volume
-              mountPath: /opt/app-root/storage
+      env:
+        - name: TZ
+          value: "Europe/Helsinki"
   volumeClaimTemplates:
     - metadata:
-        name: file-volume
+        name: file-pvc
         labels:
           app: distributed-filesystem
       spec:

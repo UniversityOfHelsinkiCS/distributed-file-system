@@ -11,9 +11,7 @@ from .routes import router as routes_router
 from .rpc import rpc_router
 
 node_id = os.environ.get("NODE_ID")
-popen = os.popen('cat /etc/config/raft_nodes')
-raft_nodes = popen.read().strip()
-popen.close()
+raft_nodes = os.environ.get("RAFT_NODES")
 
 if not node_id:
     raise ValueError("NODE_ID environment variable is required")
