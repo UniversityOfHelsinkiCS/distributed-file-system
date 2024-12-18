@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: distributed-filesystem-node
+  labels:
+    app: distributed-filesystem
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  serviceName: distributed-filesystem-headless
+  replicas: 3  # Number of desired replicas
+  selector:
+    matchLabels:
+      app: distributed-filesystem
+  template:
+    metadata:
+      labels:
+        app: distributed-filesystem
+    spec:
+      initContainers:
+        - name: init-raft-nodes
+          image: busybox
+          command: ['sh', '-c', 'for i in $(seq 0 $((REPLICAS-1))); do echo -n "distributed-filesystem-node-${i}:8080,"; done | sed "s/,$//" > /etc/config/raft_nodes']
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+      containers:
+        - name: distributed-filesystem
+          image: toskakayttaja/distributed-filesystem:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "100Mi"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name  # Use pod name as unique NODE_ID
+            - name: REDIS_HOST
+              value: redis-${POD_NAME}.distributed-filesystem-headless  # Derive Redis host using pod name
+            - name: RAFT_NODES
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+                  key: RAFT_NODES
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-filesystem-config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: distributed-filesystem-config
+  volumeClaimTemplates:
+            - name: TZ
+              value: "Europe/Helsinki"
+          volumeMounts:
+            - name: file-volume
+              mountPath: /opt/app-root/storage
+  volumeClaimTemplates:
+    - metadata:
+        name: file-volume
+        labels:
+          app: distributed-filesystem
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: pomppa25-new
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: distributed-filesystem-headless
+  labels:
+    app: distributed-filesystem
+spec:
+  clusterIP: None
+  selector:
+    app: distributed-filesystem
+  ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  labels:
+    app: redis
+    app.kubernetes.io/component: distributed-filesystem
+    app.kubernetes.io/name: distributed-filesystem
+    app.kubernetes.io/part-of: DistributedFilesystem
+spec:
+  serviceName: redis-headless
+  replicas: 3  # Number of Redis replicas
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          command: ["redis-server", "--requirepass", "supersecret"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+        labels:
+          app: redis
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Mi
+        storageClassName: pomppa25-new
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  labels:
+    app: redis
+spec:
+  clusterIP: None
+  selector:
+    app: redis
+  ports:
+    - name: 6379-tcp
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: distributed-filesystem-config
+  labels:
+    app: distributed-filesystem
+data:
+  REDIS_PASSWORD: "supersecret"  # Generalized Redis password
+  TZ: "Europe/Helsinki"
